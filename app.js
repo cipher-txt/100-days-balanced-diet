@@ -1,4 +1,5 @@
 function streak() {
+  function streak() {
   if (!state) return 0;
 
   const start = parseDate(state.startDate);
@@ -6,14 +7,15 @@ function streak() {
 
   if (today < start) return 0;
 
-  const completedThrough = Math.min(
+  const todayIndex = Math.min(
     100,
-    Math.floor((today - start) / 86400000) + 1
+    Math.floor((today - start) / 86400000)
   );
 
   let s = 0;
 
-  for (let i = 0; i < completedThrough; i++) {
+  // Count completed days before today.
+  for (let i = 0; i < todayIndex; i++) {
     const d = iso(
       new Date(
         start.getTime() + i * 86400000
@@ -25,9 +27,18 @@ function streak() {
     if (st === "done" || st === "warn") {
       s++;
     } else {
-      break;
+      s = 0;
     }
   }
 
+  // Count today only if it has actually been completed.
+  const todayDate = iso(today);
+  const todayStatus = status(todayDate);
+
+  if (todayStatus === "done" || todayStatus === "warn") {
+    s++;
+  }
+
   return s;
+}
 }
