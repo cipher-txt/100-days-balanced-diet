@@ -44,15 +44,11 @@ function loadSupabase() {
     }
 
     const script = document.createElement("script");
-
-    script.src =
-      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+    script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 
     script.onload = () => {
       if (!window.supabase || !window.supabase.createClient) {
-        reject(
-          new Error("Supabase library loaded incorrectly.")
-        );
+        reject(new Error("Supabase library loaded incorrectly."));
         return;
       }
 
@@ -72,24 +68,16 @@ function loadSupabase() {
   });
 }
 
-
-/* =========================
-   AUTH
-========================= */
-
 function createAuthUI() {
   if ($("authPanel")) return;
 
   const panel = document.createElement("section");
-
   panel.id = "authPanel";
   panel.className = "panel auth-panel";
 
   panel.innerHTML = `
     <div class="auth-box">
-
       <p class="eyebrow">YOUR ACCOUNT</p>
-
       <h1>100 Days — Balanced Diet</h1>
 
       <p class="muted">
@@ -100,34 +88,18 @@ function createAuthUI() {
 
       <label>
         Email
-        <input
-          id="authEmail"
-          type="email"
-          placeholder="you@example.com"
-        >
+        <input id="authEmail" type="email" placeholder="you@example.com">
       </label>
 
       <label>
         Password
-        <input
-          id="authPassword"
-          type="password"
-          placeholder="Password"
-        >
+        <input id="authPassword" type="password" placeholder="Password">
       </label>
 
       <div class="dialog-actions">
-
-        <button id="loginBtn" class="primary">
-          Log in
-        </button>
-
-        <button id="signupBtn" class="secondary">
-          Create account
-        </button>
-
+        <button id="loginBtn" class="primary">Log in</button>
+        <button id="signupBtn" class="secondary">Create account</button>
       </div>
-
     </div>
   `;
 
@@ -139,18 +111,12 @@ function createAuthUI() {
 
 function removeAuthUI() {
   const panel = $("authPanel");
-
-  if (panel) {
-    panel.remove();
-  }
+  if (panel) panel.remove();
 }
 
 function authMessage(message) {
   const el = $("authMessage");
-
-  if (el) {
-    el.textContent = message;
-  }
+  if (el) el.textContent = message;
 }
 
 async function login() {
@@ -207,17 +173,11 @@ async function signup() {
     authMessage(
       "Account created. Check your email to confirm your account, then log in."
     );
-
     return;
   }
 
   await afterLogin();
 }
-
-
-/* =========================
-   CHALLENGE
-========================= */
 
 async function loadChallenge() {
   const { data, error } = await db
@@ -230,1615 +190,740 @@ async function loadChallenge() {
 
   if (error) {
     console.error(error);
-
-    alert(
-      "Could not load your challenge: " +
-      error.message
-    );
-
+    alert("Could not load your challenge: " + error.message);
     return null;
   }
 
-  if (!data) {
-    return null;
-  }
+  if (!data) return null;
 
   challengeId = data.id;
 
   state = {
-    target: Number(
-      data.target ?? data.daily_target ?? 0
-    ),
-
+    target: Number(data.target),
     startDate: data.start_date,
-
     days: {}
   };
 
-
-  /* LOAD MEALS */
-
-  const {
-    data: meals,
-    error: mealError
-  } = await db
+  const { data: meals, error: mealError } = await db
     .from("meals")
     .select("*")
     .eq("challenge_id", challengeId)
-    .order("created_at", {
-      ascending: true
-    });
+    .order("created_at", { ascending: true });
 
   if (mealError) {
     console.error(mealError);
-
-    alert(
-      "Could not load your meals: " +
-      mealError.message
-    );
-
+    alert("Could not load your meals: " + mealError.message);
     return null;
   }
 
   (meals || []).forEach(meal => {
-
     if (!state.days[meal.meal_date]) {
-
       state.days[meal.meal_date] = {
         meals: [],
         manualMiss: false
       };
-
     }
 
     state.days[meal.meal_date].meals.push({
-
       id: meal.id,
-
       name: meal.name,
-
       cal: Number(meal.calories)
-
     });
-
   });
 
-
-  /* LOAD MISSED DAYS */
-
-  const {
-    data: misses,
-    error: missError
-  } = await db
+  const { data: misses } = await db
     .from("day_status")
     .select("*")
     .eq("challenge_id", challengeId);
 
-  if (!missError) {
+  (misses || []).forEach(item => {
+    if (!state.days[item.day_date]) {
+      state.days[item.day_date] = {
+        meals: [],
+        manualMiss: false
+      };
+    }
 
-    (misses || []).forEach(item => {
-
-      if (!state.days[item.day_date]) {
-
-        state.days[item.day_date] = {
-          meals: [],
-          manualMiss: false
-        };
-
-      }
-
-      state.days[item.day_date].manualMiss =
-        item.manual_miss === true;
-
-    });
-
-  }
+    state.days[item.day_date].manualMiss =
+      item.manual_miss === true;
+  });
 
   return state;
 }
 
-
 async function createChallenge(target, date) {
-
   const { data, error } = await db
     .from("challenges")
     .insert({
-
       user_id: currentUser.id,
-
-      target: target,
-
+      target,
       start_date: date
-
     })
     .select()
     .single();
 
   if (error) {
-
-    alert(
-      "Could not create your challenge: " +
-      error.message
-    );
-
+    alert("Could not create your challenge: " + error.message);
     return false;
   }
 
   challengeId = data.id;
 
   state = {
-
-    target: target,
-
+    target,
     startDate: date,
-
     days: {}
-
   };
 
   return true;
 }
 
-
-/* =========================
-   DATE / DAY FUNCTIONS
-========================= */
-
 function dayIndex(date) {
-
   const start = parseDate(state.startDate);
-
   const cur = parseDate(date);
 
-  return Math.floor(
-    (cur - start) / 86400000
-  ) + 1;
+  return Math.floor((cur - start) / 86400000) + 1;
 }
 
 function validDate(date) {
-
-  return (
-    dayIndex(date) >= 1 &&
-    dayIndex(date) <= 100
-  );
-
+  return dayIndex(date) >= 1 && dayIndex(date) <= 100;
 }
 
 function getDay(date) {
-
   if (!state.days[date]) {
-
     state.days[date] = {
-
       meals: [],
-
       manualMiss: false
-
     };
-
   }
 
   return state.days[date];
 }
 
 function calories(date) {
-
   return getDay(date).meals.reduce(
-
-    (total, meal) =>
-      total + Number(meal.cal || 0),
-
+    (a, m) => a + Number(m.cal || 0),
     0
-
   );
-
 }
 
-
-/* =========================
-   DAY STATUS
-========================= */
-
 function status(date) {
-
   const d = getDay(date);
-
   const c = calories(date);
+  const max = Number(state.target) + 100;
 
-  const target = Number(state.target);
-
-  const max = target + 100;
-
-
-  if (d.manualMiss) {
-    return "fail";
-  }
-
-
-  if (!d.meals.length) {
-    return "empty";
-  }
-
-
-  if (c <= target) {
-    return "done";
-  }
-
-
-  if (c <= max) {
-    return "warn";
-  }
-
+  if (d.manualMiss) return "fail";
+  if (!d.meals.length) return "empty";
+  if (c <= Number(state.target)) return "done";
+  if (c <= max) return "warn";
 
   return "fail";
 }
 
-
-/* =========================
-   STREAK
-========================= */
-
 function streak() {
-
-  if (!state) {
-    return 0;
-  }
+  let s = 0;
 
   const start = parseDate(state.startDate);
+  const now = parseDate(todayISO());
 
-  const today = parseDate(todayISO());
+  if (now < start) return 0;
 
-
-  if (today < start) {
-    return 0;
-  }
-
-
-  const todayIndex = Math.min(
-
+  const idx = Math.min(
     100,
-
-    Math.floor(
-      (today - start) / 86400000
-    )
-
+    Math.floor((now - start) / 86400000) + 1
   );
 
-
-  let streakCount = 0;
-
-
-  /*
-    Count completed days BEFORE today.
-
-    An unfinished current day does not
-    break the previous streak.
-  */
-
-  for (let i = 0; i < todayIndex; i++) {
-
-    const date = iso(
-
+  for (let i = idx; i >= 1; i--) {
+    const d = iso(
       new Date(
-        start.getTime() +
-        i * 86400000
+        start.getTime() + (i - 1) * 86400000
       )
-
     );
 
-    const dayStatus = status(date);
+    const st = status(d);
 
-
-    if (
-      dayStatus === "done" ||
-      dayStatus === "warn"
-    ) {
-
-      streakCount++;
-
+    if (st === "done" || st === "warn") {
+      s++;
     } else {
-
-      /*
-        A failed or missed day resets
-        the streak.
-      */
-
-      streakCount = 0;
-
+      break;
     }
-
   }
 
-
-  /*
-    Count today only if today's meals
-    already satisfy the challenge.
-  */
-
-  const todayDate = todayISO();
-
-  const todayStatus = status(todayDate);
-
-
-  if (
-    todayStatus === "done" ||
-    todayStatus === "warn"
-  ) {
-
-    streakCount++;
-
-  }
-
-
-  return streakCount;
+  return s;
 }
 
-
-/* =========================
-   MAIN RENDER
-========================= */
-
 function render() {
-
-  if (!state || !selectedDate) {
-    return;
-  }
-
+  if (!state || !selectedDate) return;
 
   const idx = dayIndex(selectedDate);
-
   const c = calories(selectedDate);
-
   const st = status(selectedDate);
-
-  const target = Number(state.target);
-
-  const max = target + 100;
-
+  const max = Number(state.target) + 100;
 
   $("dayNumber").textContent =
-    Math.min(
-      100,
-      Math.max(1, idx)
-    );
+    Math.min(100, Math.max(1, idx));
 
+  $("dateLabel").textContent = fmt(selectedDate);
 
-  $("dateLabel").textContent =
-    fmt(selectedDate);
-
-
-  $("consumed").textContent =
-    c.toLocaleString();
-
-
-  $("target").textContent =
-    target.toLocaleString();
-
+  $("consumed").textContent = c.toLocaleString();
+  $("target").textContent = Number(state.target).toLocaleString();
 
   $("remaining").textContent =
-    Math.max(
-      0,
-      target - c
-    ).toLocaleString();
+    Math.max(0, Number(state.target) - c).toLocaleString();
 
-
-  $("streak").textContent =
-    streak();
-
+  $("streak").textContent = streak();
 
   $("sideTarget").textContent =
-    target.toLocaleString() +
-    " kcal";
-
+    Number(state.target).toLocaleString() + " kcal";
 
   $("sideMax").textContent =
-    max.toLocaleString() +
-    " kcal";
+    max.toLocaleString() + " kcal";
 
+  const pct = Math.min(
+    100,
+    Math.round((c / max) * 100)
+  );
 
-  const pct =
-    max > 0
-      ? Math.min(
-          100,
-          Math.round(
-            (c / max) * 100
-          )
-        )
-      : 0;
-
-
-  $("percent").textContent =
-    pct + "%";
-
-
-  $("barFill").style.width =
-    pct + "%";
-
+  $("percent").textContent = pct + "%";
+  $("barFill").style.width = pct + "%";
 
   $("statusText").textContent =
-
     st === "done"
       ? "Within target"
-
       : st === "warn"
       ? "Within +100 kcal allowance"
-
       : st === "fail"
       ? "Day failed"
-
       : "No meals logged";
-
 
   const badge = $("dayBadge");
 
-
   badge.className =
     "badge " +
-
     (
       st === "done"
         ? "success"
-
         : st === "warn"
         ? "warning"
-
         : st === "fail"
         ? "fail"
-
         : "neutral"
     );
 
-
   badge.textContent =
-
     st === "done"
       ? "Complete"
-
       : st === "warn"
       ? "+100 allowance used"
-
       : st === "fail"
       ? "Failed"
-
       : "Not logged";
 
-
   $("dayMessage").textContent =
-
     st === "done"
-
       ? "Within your daily target."
-
       : st === "warn"
-
       ? "Within the extra 100 kcal allowance."
-
       : st === "fail"
-
       ? "This day is over the allowance or was marked missed. The streak resets."
-
       : "Log your meals to see today's result.";
 
-
   $("completeBtn").textContent =
-
     getDay(selectedDate).manualMiss
-
       ? "Undo missed day"
-
       : "Mark day as missed";
 
-
-  /* MEALS */
-
   const list = $("mealList");
-
   list.innerHTML = "";
 
-
-  const meals =
-    getDay(selectedDate).meals;
-
+  const meals = getDay(selectedDate).meals;
 
   $("emptyMeals").classList.toggle(
-
     "hidden",
-
     meals.length > 0
-
   );
 
-
-  meals.forEach(meal => {
-
-    const el =
-      document.createElement("div");
-
+  meals.forEach(m => {
+    const el = document.createElement("div");
 
     el.className = "meal";
 
-
     el.innerHTML = `
-
       <div>
-
-        <div class="meal-name">
-          ${esc(meal.name)}
-        </div>
-
-        <div class="meal-calories">
-          ${Number(meal.cal).toLocaleString()} kcal
-        </div>
-
+        <div class="meal-name">${esc(m.name)}</div>
+        <div class="meal-calories">${Number(m.cal).toLocaleString()} kcal</div>
       </div>
 
       <div class="meal-actions">
-
-        <button
-          onclick="editMeal('${meal.id}')"
-        >
-          Edit
-        </button>
-
-        <button
-          onclick="deleteMeal('${meal.id}')"
-        >
-          Delete
-        </button>
-
+        <button onclick="editMeal('${m.id}')">Edit</button>
+        <button onclick="deleteMeal('${m.id}')">Delete</button>
       </div>
-
     `;
 
-
     list.appendChild(el);
-
   });
-
 
   renderCalendar();
 }
 
-
-/* =========================
-   CALENDAR
-========================= */
-
 function renderCalendar() {
-
   const cal = $("calendar");
-
   cal.innerHTML = "";
 
-
-  const start =
-    parseDate(state.startDate);
-
-
-  const today =
-    todayISO();
-
+  const start = parseDate(state.startDate);
+  const today = todayISO();
 
   for (let i = 1; i <= 100; i++) {
-
     const d = iso(
-
       new Date(
-        start.getTime() +
-        (i - 1) * 86400000
+        start.getTime() + (i - 1) * 86400000
       )
-
     );
 
-
-    const el =
-      document.createElement("button");
-
+    const el = document.createElement("button");
 
     el.className =
-
       "day " +
-
       status(d) +
-
-      (
-        d === selectedDate
-          ? " selected"
-          : ""
-      );
-
+      (d === selectedDate ? " selected" : "");
 
     el.textContent = i;
-
-
-    el.title =
-      `Day ${i} • ${fmt(d)}`;
-
+    el.title = `Day ${i} • ${fmt(d)}`;
 
     if (d > today) {
-
       el.classList.add("future");
-
     }
 
-
     el.onclick = () => {
-
       selectedDate = d;
-
       render();
-
     };
 
-
     cal.appendChild(el);
-
   }
-
 }
 
-
-/* =========================
-   SECURITY ESCAPE
-========================= */
-
 function esc(s) {
-
   return String(s).replace(
-
     /[&<>"']/g,
-
     c =>
-
       ({
         "&": "&amp;",
         "<": "&lt;",
         ">": "&gt;",
         '"': "&quot;",
         "'": "&#39;"
-
       }[c])
-
   );
-
 }
-
-
-/* =========================
-   MEALS
-========================= */
 
 async function saveMeal(name, cal) {
-
   const { error } = await db
-
     .from("meals")
-
     .insert({
-
       challenge_id: challengeId,
-
       meal_date: selectedDate,
-
-      name: name,
-
+      name,
       calories: cal
-
     });
 
-
   if (error) {
-
-    alert(
-      "Could not save meal: " +
-      error.message
-    );
-
+    alert("Could not save meal: " + error.message);
     return false;
-
   }
-
 
   return true;
 }
 
-
-async function updateMeal(
-  id,
-  name,
-  cal
-) {
-
+async function updateMeal(id, name, cal) {
   const { error } = await db
-
     .from("meals")
-
     .update({
-
-      name: name,
-
+      name,
       calories: cal
-
     })
-
     .eq("id", id)
-
-    .eq(
-      "challenge_id",
-      challengeId
-    );
-
+    .eq("challenge_id", challengeId);
 
   if (error) {
-
-    alert(
-      "Could not update meal: " +
-      error.message
-    );
-
+    alert("Could not update meal: " + error.message);
     return false;
-
   }
-
 
   return true;
 }
-
 
 async function deleteMeal(id) {
-
-  if (
-    !confirm(
-      "Delete this meal?"
-    )
-  ) {
-
-    return;
-
-  }
-
+  if (!confirm("Delete this meal?")) return;
 
   const { error } = await db
-
     .from("meals")
-
     .delete()
-
     .eq("id", id)
-
-    .eq(
-      "challenge_id",
-      challengeId
-    );
-
+    .eq("challenge_id", challengeId);
 
   if (error) {
-
-    alert(
-      "Could not delete meal: " +
-      error.message
-    );
-
+    alert("Could not delete meal: " + error.message);
     return;
-
   }
 
-
   getDay(selectedDate).meals =
-
-    getDay(selectedDate)
-      .meals
-      .filter(
-        meal =>
-          meal.id !== id
-      );
-
+    getDay(selectedDate).meals.filter(
+      m => m.id !== id
+    );
 
   render();
-
 }
 
-
 function addMeal() {
-
   editingId = null;
 
-  $("dialogTitle").textContent =
-    "Add meal";
-
+  $("dialogTitle").textContent = "Add meal";
   $("mealName").value = "";
-
   $("mealCalories").value = "";
 
   $("mealDialog").showModal();
-
 }
 
-
 function editMeal(id) {
+  const meal = getDay(selectedDate)
+    .meals
+    .find(m => m.id === id);
 
-  const meal =
-    getDay(selectedDate)
-      .meals
-      .find(
-        meal =>
-          meal.id === id
-      );
-
-
-  if (!meal) {
-    return;
-  }
-
+  if (!meal) return;
 
   editingId = id;
 
-
-  $("dialogTitle").textContent =
-    "Edit meal";
-
-
-  $("mealName").value =
-    meal.name;
-
-
-  $("mealCalories").value =
-    meal.cal;
-
+  $("dialogTitle").textContent = "Edit meal";
+  $("mealName").value = meal.name;
+  $("mealCalories").value = meal.cal;
 
   $("mealDialog").showModal();
-
 }
 
+$("mealForm").addEventListener("submit", async e => {
+  e.preventDefault();
 
-/* =========================
-   MEAL FORM
-========================= */
+  const name = $("mealName").value.trim();
+  const cal = Number($("mealCalories").value);
 
-$("mealForm").addEventListener(
-  "submit",
-  async e => {
+  if (!name || cal < 0) return;
 
-    e.preventDefault();
+  if (editingId) {
+    const ok = await updateMeal(
+      editingId,
+      name,
+      cal
+    );
 
+    if (!ok) return;
 
-    const name =
-      $("mealName").value.trim();
+    const meal = getDay(selectedDate)
+      .meals
+      .find(m => m.id === editingId);
 
-
-    const cal =
-      Number(
-        $("mealCalories").value
-      );
-
-
-    if (!name || cal < 0) {
-      return;
+    if (meal) {
+      meal.name = name;
+      meal.cal = cal;
     }
+  } else {
+    const ok = await saveMeal(name, cal);
 
+    if (!ok) return;
 
-    if (editingId) {
-
-      const ok =
-        await updateMeal(
-          editingId,
-          name,
-          cal
-        );
-
-
-      if (!ok) {
-        return;
-      }
-
-
-      const meal =
-        getDay(selectedDate)
-          .meals
-          .find(
-            meal =>
-              meal.id === editingId
-          );
-
-
-      if (meal) {
-
-        meal.name = name;
-
-        meal.cal = cal;
-
-      }
-
-
-    } else {
-
-      const ok =
-        await saveMeal(
-          name,
-          cal
-        );
-
-
-      if (!ok) {
-        return;
-      }
-
-
-      await loadChallenge();
-
-    }
-
-
-    $("mealDialog").close();
-
-    render();
-
+    await loadChallenge();
   }
-);
 
+  $("mealDialog").close();
+  render();
+});
 
-$("addMealBtn").onclick =
-  addMeal;
-
-
-/* =========================
-   DAY NAVIGATION
-========================= */
+$("addMealBtn").onclick = addMeal;
 
 $("prevBtn").onclick = () => {
-
-  const d =
-    parseDate(selectedDate);
-
-
-  d.setDate(
-    d.getDate() - 1
-  );
-
+  const d = parseDate(selectedDate);
+  d.setDate(d.getDate() - 1);
 
   const x = iso(d);
 
-
   if (validDate(x)) {
-
     selectedDate = x;
-
     render();
-
   }
-
 };
-
 
 $("nextBtn").onclick = () => {
-
-  const d =
-    parseDate(selectedDate);
-
-
-  d.setDate(
-    d.getDate() + 1
-  );
-
+  const d = parseDate(selectedDate);
+  d.setDate(d.getDate() + 1);
 
   const x = iso(d);
 
-
   if (validDate(x)) {
-
     selectedDate = x;
-
     render();
-
   }
-
 };
 
-
 $("todayBtn").onclick = () => {
-
-  const t =
-    todayISO();
-
+  const t = todayISO();
 
   selectedDate =
-
     validDate(t)
       ? t
       : state.startDate;
 
-
   render();
-
 };
 
+$("completeBtn").onclick = async () => {
+  const d = getDay(selectedDate);
+  const newValue = !d.manualMiss;
 
-/* =========================
-   MISSED DAY
-========================= */
+  const { data: existing } = await db
+    .from("day_status")
+    .select("id")
+    .eq("challenge_id", challengeId)
+    .eq("day_date", selectedDate)
+    .maybeSingle();
 
-$("completeBtn").onclick =
-  async () => {
+  let error;
 
-    const d =
-      getDay(selectedDate);
-
-
-    const newValue =
-      !d.manualMiss;
-
-
-    const {
-      data: existing
-    } = await db
-
+  if (existing) {
+    ({ error } = await db
       .from("day_status")
+      .update({
+        manual_miss: newValue
+      })
+      .eq("id", existing.id));
+  } else {
+    ({ error } = await db
+      .from("day_status")
+      .insert({
+        challenge_id: challengeId,
+        day_date: selectedDate,
+        manual_miss: newValue
+      }));
+  }
 
-      .select("id")
+  if (error) {
+    alert("Could not update day status: " + error.message);
+    return;
+  }
 
-      .eq(
-        "challenge_id",
-        challengeId
-      )
-
-      .eq(
-        "day_date",
-        selectedDate
-      )
-
-      .maybeSingle();
-
-
-    let error;
-
-
-    if (existing) {
-
-      ({
-        error
-      } = await db
-
-        .from("day_status")
-
-        .update({
-
-          manual_miss:
-            newValue
-
-        })
-
-        .eq(
-          "id",
-          existing.id
-        ));
-
-    } else {
-
-      ({
-        error
-      } = await db
-
-        .from("day_status")
-
-        .insert({
-
-          challenge_id:
-            challengeId,
-
-          day_date:
-            selectedDate,
-
-          manual_miss:
-            newValue
-
-        }));
-
-    }
-
-
-    if (error) {
-
-      alert(
-        "Could not update day status: " +
-        error.message
-      );
-
-      return;
-
-    }
-
-
-    d.manualMiss =
-      newValue;
-
-
-    render();
-
-  };
-
-
-/* =========================
-   SETTINGS
-========================= */
+  d.manualMiss = newValue;
+  render();
+};
 
 $("settingsBtn").onclick = () => {
+  if (!state) return;
 
-  if (!state) {
-    return;
-  }
-
-
-  $("settingsTarget").value =
-    state.target;
-
-
-  $("settingsDate").value =
-    state.startDate;
-
+  $("settingsTarget").value = state.target;
+  $("settingsDate").value = state.startDate;
 
   $("settingsDialog").showModal();
-
 };
 
-
-$("settingsForm").addEventListener(
-  "submit",
-  async e => {
-
-    e.preventDefault();
-
-
-    const target =
-      Number(
-        $("settingsTarget").value
-      );
-
-
-    const date =
-      $("settingsDate").value;
-
-
-    if (!target || !date) {
-      return;
-    }
-
-
-    const { error } = await db
-
-      .from("challenges")
-
-      .update({
-
-        target: target,
-
-        start_date: date
-
-      })
-
-      .eq(
-        "id",
-        challengeId
-      )
-
-      .eq(
-        "user_id",
-        currentUser.id
-      );
-
-
-    if (error) {
-
-      alert(
-        "Could not save settings: " +
-        error.message
-      );
-
-      return;
-
-    }
-
-
-    state.target =
-      target;
-
-
-    state.startDate =
-      date;
-
-
-    selectedDate =
-
-      validDate(todayISO())
-        ? todayISO()
-        : date;
-
-
-    $("settingsDialog").close();
-
-
-    render();
-
-  }
-);
-
-
-/* =========================
-   CREATE CHALLENGE
-========================= */
-
-$("setupDate").value =
-  todayISO();
-
-
-$("startBtn").onclick =
-  async () => {
-
-    const target =
-      Number(
-        $("setupTarget").value
-      );
-
-
-    const date =
-      $("setupDate").value;
-
-
-    if (
-      !target ||
-      target < 1 ||
-      !date
-    ) {
-
-      alert(
-        "Please enter a calorie target and start date."
-      );
-
-      return;
-
-    }
-
-
-    $("startBtn").disabled =
-      true;
-
-
-    $("startBtn").textContent =
-      "Creating challenge...";
-
-
-    const ok =
-      await createChallenge(
-        target,
-        date
-      );
-
-
-    $("startBtn").disabled =
-      false;
-
-
-    $("startBtn").textContent =
-      "Start my 100 days";
-
-
-    if (!ok) {
-      return;
-    }
-
-
-    $("setup").classList.add(
-      "hidden"
-    );
-
-
-    $("app").classList.remove(
-      "hidden"
-    );
-
-
-    selectedDate =
-
-      validDate(todayISO())
-        ? todayISO()
-        : date;
-
-
-    render();
-
-  };
-
-
-/* =========================
-   EXPORT
-========================= */
-
-$("exportBtn").onclick = () => {
-
-  const blob =
-    new Blob(
-
-      [
-        JSON.stringify(
-          state,
-          null,
-          2
-        )
-      ],
-
-      {
-        type:
-          "application/json"
-      }
-
-    );
-
-
-  const a =
-    document.createElement("a");
-
-
-  a.href =
-    URL.createObjectURL(blob);
-
-
-  a.download =
-    "balanced-diet-100-days.json";
-
-
-  a.click();
-
-
-  URL.revokeObjectURL(
-    a.href
-  );
-
-};
-
-
-/* =========================
-   IMPORT
-========================= */
-
-$("importInput").onchange =
-  e => {
-
-    const file =
-      e.target.files[0];
-
-
-    if (!file) {
-      return;
-    }
-
-
-    alert(
-      "Import will be added after the main tracker is working."
-    );
-
-  };
-
-
-/* =========================
-   LOGOUT
-========================= */
-
-function createLogoutButton() {
-
-  if ($("logoutBtn")) {
+$("settingsForm").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const target = Number($("settingsTarget").value);
+  const date = $("settingsDate").value;
+
+  if (!target || !date) return;
+
+  const { error } = await db
+    .from("challenges")
+    .update({
+      target,
+      start_date: date
+    })
+    .eq("id", challengeId)
+    .eq("user_id", currentUser.id);
+
+  if (error) {
+    alert("Could not save settings: " + error.message);
     return;
   }
 
-
-  const button =
-    document.createElement(
-      "button"
-    );
-
-
-  button.id =
-    "logoutBtn";
-
-
-  button.className =
-    "ghost";
-
-
-  button.textContent =
-    "Log out";
-
-
-  button.onclick =
-    async () => {
-
-      await db.auth.signOut();
-
-      location.reload();
-
-    };
-
-
-  document
-    .querySelector(".topbar")
-    .appendChild(button);
-
-}
-
-
-/* =========================
-   AFTER LOGIN
-========================= */
-
-async function afterLogin() {
-
-  const {
-    data: {
-      user
-    }
-  } =
-    await db.auth.getUser();
-
-
-  currentUser =
-    user;
-
-
-  if (!currentUser) {
-    return;
-  }
-
-
-  removeAuthUI();
-
-  createLogoutButton();
-
-
-  const loaded =
-    await loadChallenge();
-
-
-  if (!loaded) {
-
-    $("setup")
-      .classList
-      .remove("hidden");
-
-
-    $("app")
-      .classList
-      .add("hidden");
-
-
-    $("setupDate").value =
-      todayISO();
-
-
-    return;
-
-  }
-
-
-  $("setup")
-    .classList
-    .add("hidden");
-
-
-  $("app")
-    .classList
-    .remove("hidden");
-
+  state.target = target;
+  state.startDate = date;
 
   selectedDate =
+    validDate(todayISO())
+      ? todayISO()
+      : date;
 
+  $("settingsDialog").close();
+
+  render();
+});
+
+$("setupDate").value = todayISO();
+
+$("startBtn").onclick = async () => {
+  const target = Number($("setupTarget").value);
+  const date = $("setupDate").value;
+
+  if (!target || target < 1 || !date) {
+    alert("Please enter a calorie target and start date.");
+    return;
+  }
+
+  $("startBtn").disabled = true;
+  $("startBtn").textContent = "Creating challenge...";
+
+  const ok = await createChallenge(target, date);
+
+  $("startBtn").disabled = false;
+  $("startBtn").textContent = "Start my 100 days";
+
+  if (!ok) return;
+
+  $("setup").classList.add("hidden");
+  $("app").classList.remove("hidden");
+
+  selectedDate =
+    validDate(todayISO())
+      ? todayISO()
+      : date;
+
+  render();
+};
+
+$("exportBtn").onclick = () => {
+  const blob = new Blob(
+    [JSON.stringify(state, null, 2)],
+    { type: "application/json" }
+  );
+
+  const a = document.createElement("a");
+
+  a.href = URL.createObjectURL(blob);
+  a.download = "balanced-diet-100-days.json";
+  a.click();
+
+  URL.revokeObjectURL(a.href);
+};
+
+$("resetBtn").onclick = async () => {
+  if (!confirm("Reset the entire 100-day challenge?")) {
+    return;
+  }
+
+  const { error } = await db
+    .from("challenges")
+    .delete()
+    .eq("id", challengeId)
+    .eq("user_id", currentUser.id);
+
+  if (error) {
+    alert("Could not reset challenge: " + error.message);
+    return;
+  }
+
+  location.reload();
+};
+
+$("importInput").onchange = e => {
+  const file = e.target.files[0];
+
+  if (!file) return;
+
+  alert("Import will be added after the main tracker is working.");
+};
+
+function createLogoutButton() {
+  if ($("logoutBtn")) return;
+
+  const button = document.createElement("button");
+
+  button.id = "logoutBtn";
+  button.className = "ghost";
+  button.textContent = "Log out";
+
+  button.onclick = async () => {
+    await db.auth.signOut();
+    location.reload();
+  };
+
+  document.querySelector(".topbar").appendChild(button);
+}
+
+async function afterLogin() {
+  const {
+    data: { user }
+  } = await db.auth.getUser();
+
+  currentUser = user;
+
+  if (!currentUser) return;
+
+  removeAuthUI();
+  createLogoutButton();
+
+  const loaded = await loadChallenge();
+
+  if (!loaded) {
+    $("setup").classList.remove("hidden");
+    $("app").classList.add("hidden");
+    $("setupDate").value = todayISO();
+    return;
+  }
+
+  $("setup").classList.add("hidden");
+  $("app").classList.remove("hidden");
+
+  selectedDate =
     validDate(todayISO())
       ? todayISO()
       : state.startDate;
 
-
   render();
-
 }
-
-
-/* =========================
-   INITIALIZATION
-========================= */
 
 async function init() {
-
   try {
-
     await loadSupabase();
 
-
     const {
-      data: {
-        session
-      }
-    } =
-      await db.auth.getSession();
-
+      data: { session }
+    } = await db.auth.getSession();
 
     if (session) {
-
       await afterLogin();
-
     } else {
-
-      $("setup")
-        .classList
-        .add("hidden");
-
-
-      $("app")
-        .classList
-        .add("hidden");
-
-
+      $("setup").classList.add("hidden");
+      $("app").classList.add("hidden");
       createAuthUI();
-
     }
 
-
-    db.auth.onAuthStateChange(
-      (event, session) => {
-
-        if (
-          event === "SIGNED_IN" &&
-          session
-        ) {
-
-          afterLogin();
-
-        }
-
+    db.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        afterLogin();
       }
-    );
-
+    });
 
   } catch (error) {
-
     console.error(error);
 
-
     document.body.insertAdjacentHTML(
-
       "afterbegin",
-
       `
-
       <div style="
-
         padding:20px;
-
         margin:20px;
-
         background:#fee;
-
         color:#900;
-
         border:1px solid #d88;
-
         border-radius:10px;
-
         font-family:system-ui;
-
       ">
-
-        <strong>
-          App error:
-        </strong>
-
+        <strong>App error:</strong>
         ${esc(error.message)}
-
       </div>
-
       `
-
     );
-
   }
-
 }
-
 
 init();
