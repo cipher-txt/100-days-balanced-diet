@@ -566,17 +566,10 @@ async function updateMeal(id, name, cal) {
 }
 
 async function deleteMeal(id) {
-  if (!confirm("Delete this meal?")) return;
-
-  const { error } = await db
-    .from("meals")
-    .delete()
-    .eq("id", id)
-    .eq("challenge_id", challengeId);
-
-  if (error) {
-    alert("Could not delete meal: " + error.message);
-    return;
+ if (selectedDate > todayISO()) {
+  alert("You cannot delete meals from a future day.");
+  return;
+}
   }
 
   getDay(selectedDate).meals =
