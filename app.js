@@ -12,13 +12,17 @@ const $ = id => document.getElementById(id);
 
 const iso = d => {
   const x = new Date(d);
-  return new Date(x.getTime() - x.getTimezoneOffset() * 60000)
+
+  return new Date(
+    x.getTime() - x.getTimezoneOffset() * 60000
+  )
     .toISOString()
     .slice(0, 10);
 };
 
 const parseDate = s => {
   const [y, m, d] = s.split("-").map(Number);
+
   return new Date(y, m - 1, d);
 };
 
@@ -32,23 +36,42 @@ const fmt = d =>
     year: "numeric"
   });
 
+
+/* =========================
+   SUPABASE
+========================= */
+
 function loadSupabase() {
   return new Promise((resolve, reject) => {
+
     if (window.supabase && window.supabase.createClient) {
+
       db = window.supabase.createClient(
         SUPABASE_URL,
         SUPABASE_KEY
       );
+
       resolve();
       return;
     }
 
     const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+
+    script.src =
+      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 
     script.onload = () => {
-      if (!window.supabase || !window.supabase.createClient) {
-        reject(new Error("Supabase library loaded incorrectly."));
+
+      if (
+        !window.supabase ||
+        !window.supabase.createClient
+      ) {
+        reject(
+          new Error(
+            "Supabase library loaded incorrectly."
+          )
+        );
+
         return;
       }
 
@@ -61,23 +84,36 @@ function loadSupabase() {
     };
 
     script.onerror = () => {
-      reject(new Error("Could not load Supabase."));
+      reject(
+        new Error(
+          "Could not load Supabase."
+        )
+      );
     };
 
     document.head.appendChild(script);
   });
 }
 
+
+/* =========================
+   AUTH UI
+========================= */
+
 function createAuthUI() {
+
   if ($("authPanel")) return;
 
   const panel = document.createElement("section");
+
   panel.id = "authPanel";
   panel.className = "panel auth-panel";
 
   panel.innerHTML = `
     <div class="auth-box">
+
       <p class="eyebrow">YOUR ACCOUNT</p>
+
       <h1>100 Days — Balanced Diet</h1>
 
       <p class="muted">
@@ -88,18 +124,40 @@ function createAuthUI() {
 
       <label>
         Email
-        <input id="authEmail" type="email" placeholder="you@example.com">
+        <input
+          id="authEmail"
+          type="email"
+          placeholder="you@example.com"
+        >
       </label>
 
       <label>
         Password
-        <input id="authPassword" type="password" placeholder="Password">
+        <input
+          id="authPassword"
+          type="password"
+          placeholder="Password"
+        >
       </label>
 
       <div class="dialog-actions">
-        <button id="loginBtn" class="primary">Log in</button>
-        <button id="signupBtn" class="secondary">Create account</button>
+
+        <button
+          id="loginBtn"
+          class="primary"
+        >
+          Log in
+        </button>
+
+        <button
+          id="signupBtn"
+          class="secondary"
+        >
+          Create account
+        </button>
+
       </div>
+
     </div>
   `;
 
@@ -110,91 +168,154 @@ function createAuthUI() {
 }
 
 function removeAuthUI() {
+
   const panel = $("authPanel");
-  if (panel) panel.remove();
+
+  if (panel) {
+    panel.remove();
+  }
 }
 
 function authMessage(message) {
+
   const el = $("authMessage");
-  if (el) el.textContent = message;
+
+  if (el) {
+    el.textContent = message;
+  }
 }
 
+
+/* =========================
+   LOGIN
+========================= */
+
 async function login() {
-  const email = $("authEmail").value.trim();
-  const password = $("authPassword").value;
+
+  const email =
+    $("authEmail").value.trim();
+
+  const password =
+    $("authPassword").value;
 
   if (!email || !password) {
-    authMessage("Enter your email and password.");
+
+    authMessage(
+      "Enter your email and password."
+    );
+
     return;
   }
 
   authMessage("Logging in...");
 
-  const { error } = await db.auth.signInWithPassword({
-    email,
-    password
-  });
+  const { error } =
+    await db.auth.signInWithPassword({
+      email,
+      password
+    });
 
   if (error) {
+
     authMessage(error.message);
+
     return;
   }
 
   await afterLogin();
 }
 
+
+/* =========================
+   SIGN UP
+========================= */
+
 async function signup() {
-  const email = $("authEmail").value.trim();
-  const password = $("authPassword").value;
+
+  const email =
+    $("authEmail").value.trim();
+
+  const password =
+    $("authPassword").value;
 
   if (!email || !password) {
-    authMessage("Enter an email and password.");
+
+    authMessage(
+      "Enter an email and password."
+    );
+
     return;
   }
 
   if (password.length < 6) {
-    authMessage("Password must be at least 6 characters.");
+
+    authMessage(
+      "Password must be at least 6 characters."
+    );
+
     return;
   }
 
   authMessage("Creating account...");
 
-  const { data, error } = await db.auth.signUp({
-    email,
-    password
-  });
+  const { data, error } =
+    await db.auth.signUp({
+      email,
+      password
+    });
 
   if (error) {
+
     authMessage(error.message);
+
     return;
   }
 
   if (!data.session) {
+
     authMessage(
       "Account created. Check your email to confirm your account, then log in."
     );
+
     return;
   }
 
   await afterLogin();
 }
 
+
+/* =========================
+   LOAD CHALLENGE
+========================= */
+
 async function loadChallenge() {
-  const { data, error } = await db
-    .from("challenges")
-    .select("*")
-    .eq("user_id", currentUser.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+
+  const { data, error } =
+    await db
+      .from("challenges")
+      .select("*")
+      .eq("user_id", currentUser.id)
+      .order("created_at", {
+        ascending: false
+      })
+      .limit(1)
+      .maybeSingle();
 
   if (error) {
+
     console.error(error);
-    alert("Could not load your challenge: " + error.message);
+
+    alert(
+      "Could not load your challenge: " +
+      error.message
+    );
+
     return null;
   }
 
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
 
   challengeId = data.id;
 
@@ -204,20 +325,36 @@ async function loadChallenge() {
     days: {}
   };
 
-  const { data: meals, error: mealError } = await db
+
+  /* LOAD MEALS */
+
+  const {
+    data: meals,
+    error: mealError
+  } = await db
     .from("meals")
     .select("*")
     .eq("challenge_id", challengeId)
-    .order("created_at", { ascending: true });
+    .order("created_at", {
+      ascending: true
+    });
 
   if (mealError) {
+
     console.error(mealError);
-    alert("Could not load your meals: " + mealError.message);
+
+    alert(
+      "Could not load your meals: " +
+      mealError.message
+    );
+
     return null;
   }
 
   (meals || []).forEach(meal => {
+
     if (!state.days[meal.meal_date]) {
+
       state.days[meal.meal_date] = {
         meals: [],
         manualMiss: false
@@ -231,13 +368,20 @@ async function loadChallenge() {
     });
   });
 
-  const { data: misses } = await db
+
+  /* LOAD MISSED DAYS */
+
+  const {
+    data: misses
+  } = await db
     .from("day_status")
     .select("*")
     .eq("challenge_id", challengeId);
 
   (misses || []).forEach(item => {
+
     if (!state.days[item.day_date]) {
+
       state.days[item.day_date] = {
         meals: [],
         manualMiss: false
@@ -251,8 +395,17 @@ async function loadChallenge() {
   return state;
 }
 
+
+/* =========================
+   CREATE CHALLENGE
+========================= */
+
 async function createChallenge(target, date) {
-  const { data, error } = await db
+
+  const {
+    data,
+    error
+  } = await db
     .from("challenges")
     .insert({
       user_id: currentUser.id,
@@ -263,7 +416,12 @@ async function createChallenge(target, date) {
     .single();
 
   if (error) {
-    alert("Could not create your challenge: " + error.message);
+
+    alert(
+      "Could not create your challenge: " +
+      error.message
+    );
+
     return false;
   }
 
@@ -278,19 +436,46 @@ async function createChallenge(target, date) {
   return true;
 }
 
-function dayIndex(date) {
-  const start = parseDate(state.startDate);
-  const cur = parseDate(date);
 
-  return Math.floor((cur - start) / 86400000) + 1;
+/* =========================
+   DATE FUNCTIONS
+========================= */
+
+function dayIndex(date) {
+
+  const start =
+    parseDate(state.startDate);
+
+  const cur =
+    parseDate(date);
+
+  return Math.floor(
+    (cur - start) / 86400000
+  ) + 1;
 }
 
 function validDate(date) {
-  return dayIndex(date) >= 1 && dayIndex(date) <= 100;
+
+  return (
+    dayIndex(date) >= 1 &&
+    dayIndex(date) <= 100
+  );
 }
 
+function isFutureDate(date) {
+
+  return date > todayISO();
+}
+
+
+/* =========================
+   DAY DATA
+========================= */
+
 function getDay(date) {
+
   if (!state.days[date]) {
+
     state.days[date] = {
       meals: [],
       manualMiss: false
@@ -301,95 +486,197 @@ function getDay(date) {
 }
 
 function calories(date) {
+
   return getDay(date).meals.reduce(
-    (a, m) => a + Number(m.cal || 0),
+    (a, m) =>
+      a + Number(m.cal || 0),
     0
   );
 }
 
-function status(date) {
-  const d = getDay(date);
-  const c = calories(date);
-  const max = Number(state.target) + 100;
 
-  if (d.manualMiss) return "fail";
-  if (!d.meals.length) return "empty";
-  if (c <= Number(state.target)) return "done";
-  if (c <= max) return "warn";
+/* =========================
+   DAY STATUS
+========================= */
+
+function status(date) {
+
+  const d =
+    getDay(date);
+
+  const c =
+    calories(date);
+
+  const max =
+    Number(state.target) + 100;
+
+  if (d.manualMiss) {
+    return "fail";
+  }
+
+  if (!d.meals.length) {
+    return "empty";
+  }
+
+  if (c <= Number(state.target)) {
+    return "done";
+  }
+
+  if (c <= max) {
+    return "warn";
+  }
 
   return "fail";
 }
 
+
+/* =========================
+   STREAK
+   Based on selected
+   challenge day
+========================= */
+
 function streak() {
-   const start = parseDate(state.startDate);
-  const today = parseDate(todayISO());
 
-  if (today < start) return 0;
+  if (!state || !selectedDate) {
+    return 0;
+  }
 
-  const todayIndex =
-    Math.min(100, Math.floor((today - start) / 86400000) + 1);
+  const selectedIndex =
+    dayIndex(selectedDate);
+
+  if (
+    selectedIndex < 1 ||
+    selectedIndex > 100
+  ) {
+    return 0;
+  }
 
   let s = 0;
 
-  // Count completed days before today.
-  for (let i = todayIndex - 1; i >= 1; i--) {
-    const d = iso(
-      new Date(start.getTime() + (i - 1) * 86400000)
-    );
+  for (
+    let i = 1;
+    i <= selectedIndex;
+    i++
+  ) {
 
-    const st = status(d);
+    const start =
+      parseDate(state.startDate);
 
-    if (st === "done" || st === "warn") {
+    const d =
+      iso(
+        new Date(
+          start.getTime() +
+          (i - 1) * 86400000
+        )
+      );
+
+    const st =
+      status(d);
+
+    if (
+      st === "done" ||
+      st === "warn"
+    ) {
       s++;
     } else {
       break;
     }
   }
 
-  // Only add today if today has actually been completed.
-  const todayStatus = status(todayISO());
-
-  if (todayStatus === "done" || todayStatus === "warn") {
-    s++;
-  }
-
   return s;
 }
 
-function render() {
-  if (!state || !selectedDate) return;
 
-  const idx = dayIndex(selectedDate);
-  const c = calories(selectedDate);
-  const st = status(selectedDate);
-  const max = Number(state.target) + 100;
+/* =========================
+   RENDER
+========================= */
+
+function render() {
+
+  if (!state || !selectedDate) {
+    return;
+  }
+
+  const idx =
+    dayIndex(selectedDate);
+
+  const c =
+    calories(selectedDate);
+
+  const st =
+    status(selectedDate);
+
+  const max =
+    Number(state.target) + 100;
+
+
+  /* DAY NUMBER */
 
   $("dayNumber").textContent =
-    Math.min(100, Math.max(1, idx));
+    Math.min(
+      100,
+      Math.max(1, idx)
+    );
 
-  $("dateLabel").textContent = fmt(selectedDate);
 
-  $("consumed").textContent = c.toLocaleString();
-  $("target").textContent = Number(state.target).toLocaleString();
+  /* DATE */
+
+  $("dateLabel").textContent =
+    fmt(selectedDate);
+
+
+  /* STATS */
+
+  $("consumed").textContent =
+    c.toLocaleString();
+
+  $("target").textContent =
+    Number(
+      state.target
+    ).toLocaleString();
 
   $("remaining").textContent =
-    Math.max(0, Number(state.target) - c).toLocaleString();
+    Math.max(
+      0,
+      Number(state.target) - c
+    ).toLocaleString();
 
-  $("streak").textContent = streak();
+  $("streak").textContent =
+    streak();
+
+
+  /* SIDE SUMMARY */
 
   $("sideTarget").textContent =
-    Number(state.target).toLocaleString() + " kcal";
+    Number(
+      state.target
+    ).toLocaleString() +
+    " kcal";
 
   $("sideMax").textContent =
-    max.toLocaleString() + " kcal";
+    max.toLocaleString() +
+    " kcal";
 
-  const pct = Math.min(
-    100,
-    Math.round((c / max) * 100)
-  );
 
-  $("percent").textContent = pct + "%";
-  $("barFill").style.width = pct + "%";
+  /* PROGRESS */
+
+  const pct =
+    Math.min(
+      100,
+      Math.round(
+        (c / max) * 100
+      )
+    );
+
+  $("percent").textContent =
+    pct + "%";
+
+  $("barFill").style.width =
+    pct + "%";
+
+
+  /* STATUS TEXT */
 
   $("statusText").textContent =
     st === "done"
@@ -400,7 +687,11 @@ function render() {
       ? "Day failed"
       : "No meals logged";
 
-  const badge = $("dayBadge");
+
+  /* BADGE */
+
+  const badge =
+    $("dayBadge");
 
   badge.className =
     "badge " +
@@ -423,6 +714,9 @@ function render() {
       ? "Failed"
       : "Not logged";
 
+
+  /* MESSAGE */
+
   $("dayMessage").textContent =
     st === "done"
       ? "Within your daily target."
@@ -430,17 +724,42 @@ function render() {
       ? "Within the extra 100 kcal allowance."
       : st === "fail"
       ? "This day is over the allowance or was marked missed. The streak resets."
+      : isFutureDate(selectedDate)
+      ? "This is a future day. You cannot log meals yet."
       : "Log your meals to see today's result.";
+
+
+  /* MISSED BUTTON */
 
   $("completeBtn").textContent =
     getDay(selectedDate).manualMiss
       ? "Undo missed day"
       : "Mark day as missed";
 
-  const list = $("mealList");
+
+  /*
+    Disable actions on future days
+  */
+
+  const future =
+    isFutureDate(selectedDate);
+
+  $("addMealBtn").disabled =
+    future;
+
+  $("completeBtn").disabled =
+    future;
+
+
+  /* MEALS */
+
+  const list =
+    $("mealList");
+
   list.innerHTML = "";
 
-  const meals = getDay(selectedDate).meals;
+  const meals =
+    getDay(selectedDate).meals;
 
   $("emptyMeals").classList.toggle(
     "hidden",
@@ -448,19 +767,40 @@ function render() {
   );
 
   meals.forEach(m => {
-    const el = document.createElement("div");
 
-    el.className = "meal";
+    const el =
+      document.createElement("div");
+
+    el.className =
+      "meal";
 
     el.innerHTML = `
       <div>
-        <div class="meal-name">${esc(m.name)}</div>
-        <div class="meal-calories">${Number(m.cal).toLocaleString()} kcal</div>
+        <div class="meal-name">
+          ${esc(m.name)}
+        </div>
+
+        <div class="meal-calories">
+          ${Number(m.cal).toLocaleString()} kcal
+        </div>
       </div>
 
       <div class="meal-actions">
-        <button onclick="editMeal('${m.id}')">Edit</button>
-        <button onclick="deleteMeal('${m.id}')">Delete</button>
+
+        <button
+          onclick="editMeal('${m.id}')"
+          ${future ? "disabled" : ""}
+        >
+          Edit
+        </button>
+
+        <button
+          onclick="deleteMeal('${m.id}')"
+          ${future ? "disabled" : ""}
+        >
+          Delete
+        </button>
+
       </div>
     `;
 
@@ -470,36 +810,63 @@ function render() {
   renderCalendar();
 }
 
+
+/* =========================
+   CALENDAR
+========================= */
+
 function renderCalendar() {
-  const cal = $("calendar");
+
+  const cal =
+    $("calendar");
+
   cal.innerHTML = "";
 
-  const start = parseDate(state.startDate);
-  const today = todayISO();
+  const start =
+    parseDate(state.startDate);
 
-  for (let i = 1; i <= 100; i++) {
-    const d = iso(
-      new Date(
-        start.getTime() + (i - 1) * 86400000
-      )
-    );
+  const today =
+    todayISO();
 
-    const el = document.createElement("button");
+  for (
+    let i = 1;
+    i <= 100;
+    i++
+  ) {
+
+    const d =
+      iso(
+        new Date(
+          start.getTime() +
+          (i - 1) * 86400000
+        )
+      );
+
+    const el =
+      document.createElement("button");
 
     el.className =
       "day " +
       status(d) +
-      (d === selectedDate ? " selected" : "");
+      (
+        d === selectedDate
+          ? " selected"
+          : ""
+      );
 
     el.textContent = i;
-    el.title = `Day ${i} • ${fmt(d)}`;
+
+    el.title =
+      `Day ${i} • ${fmt(d)}`;
 
     if (d > today) {
       el.classList.add("future");
     }
 
     el.onclick = () => {
+
       selectedDate = d;
+
       render();
     };
 
@@ -507,7 +874,13 @@ function renderCalendar() {
   }
 }
 
+
+/* =========================
+   ESCAPE HTML
+========================= */
+
 function esc(s) {
+
   return String(s).replace(
     /[&<>"']/g,
     c =>
@@ -521,56 +894,133 @@ function esc(s) {
   );
 }
 
+
+/* =========================
+   SAVE MEAL
+========================= */
+
 async function saveMeal(name, cal) {
-  if (selectedDate > todayISO()) {
-    alert("You cannot add meals to a future day.");
+
+  if (isFutureDate(selectedDate)) {
+
+    alert(
+      "You cannot add meals to a future day."
+    );
+
     return false;
   }
 
-  const { error } = await db
-    .from("meals")
-    .insert({
-      challenge_id: challengeId,
-      meal_date: selectedDate,
-      name,
-      calories: cal
-    });
+  const { error } =
+    await db
+      .from("meals")
+      .insert({
+        challenge_id: challengeId,
+        meal_date: selectedDate,
+        name,
+        calories: cal
+      });
 
   if (error) {
-    alert("Could not save meal: " + error.message);
+
+    alert(
+      "Could not save meal: " +
+      error.message
+    );
+
     return false;
   }
 
   return true;
 }
-async function updateMeal(id, name, cal) {
-  if (selectedDate > todayISO()) {
-  alert("You cannot edit meals on a future day.");
-  return false;
-}
-  const { error } = await db
-    .from("meals")
-    .update({
-      name,
-      calories: cal
-    })
-    .eq("id", id)
-    .eq("challenge_id", challengeId);
+
+
+/* =========================
+   UPDATE MEAL
+========================= */
+
+async function updateMeal(
+  id,
+  name,
+  cal
+) {
+
+  if (isFutureDate(selectedDate)) {
+
+    alert(
+      "You cannot edit meals on a future day."
+    );
+
+    return false;
+  }
+
+  const { error } =
+    await db
+      .from("meals")
+      .update({
+        name,
+        calories: cal
+      })
+      .eq("id", id)
+      .eq("challenge_id", challengeId);
 
   if (error) {
-    alert("Could not update meal: " + error.message);
+
+    alert(
+      "Could not update meal: " +
+      error.message
+    );
+
     return false;
   }
 
   return true;
 }
+
+
+/* =========================
+   DELETE MEAL
+========================= */
 
 async function deleteMeal(id) {
- if (selectedDate > todayISO()) {
-  alert("You cannot delete meals from a future day.");
-  return;
-}
+
+  if (isFutureDate(selectedDate)) {
+
+    alert(
+      "You cannot delete meals from a future day."
+    );
+
+    return;
   }
+
+  if (
+    !confirm(
+      "Delete this meal?"
+    )
+  ) {
+    return;
+  }
+
+  const { error } =
+    await db
+      .from("meals")
+      .delete()
+      .eq("id", id)
+      .eq("challenge_id", challengeId);
+
+  if (error) {
+
+    alert(
+      "Could not delete meal: " +
+      error.message
+    );
+
+    return;
+  }
+
+  /*
+    Remove it locally only after
+    successful database deletion.
+  */
 
   getDay(selectedDate).meals =
     getDay(selectedDate).meals.filter(
@@ -580,97 +1030,215 @@ async function deleteMeal(id) {
   render();
 }
 
+
+/* =========================
+   ADD MEAL DIALOG
+========================= */
+
 function addMeal() {
+
+  if (isFutureDate(selectedDate)) {
+
+    alert(
+      "You cannot add meals to a future day."
+    );
+
+    return;
+  }
+
   editingId = null;
 
-  $("dialogTitle").textContent = "Add meal";
+  $("dialogTitle").textContent =
+    "Add meal";
+
   $("mealName").value = "";
   $("mealCalories").value = "";
 
   $("mealDialog").showModal();
 }
 
-function editMeal(id) {
-  const meal = getDay(selectedDate)
-    .meals
-    .find(m => m.id === id);
 
-  if (!meal) return;
+/* =========================
+   EDIT MEAL DIALOG
+========================= */
+
+function editMeal(id) {
+
+  if (isFutureDate(selectedDate)) {
+
+    alert(
+      "You cannot edit meals on a future day."
+    );
+
+    return;
+  }
+
+  const meal =
+    getDay(selectedDate)
+      .meals
+      .find(
+        m => m.id === id
+      );
+
+  if (!meal) {
+    return;
+  }
 
   editingId = id;
 
-  $("dialogTitle").textContent = "Edit meal";
-  $("mealName").value = meal.name;
-  $("mealCalories").value = meal.cal;
+  $("dialogTitle").textContent =
+    "Edit meal";
+
+  $("mealName").value =
+    meal.name;
+
+  $("mealCalories").value =
+    meal.cal;
 
   $("mealDialog").showModal();
 }
 
-$("mealForm").addEventListener("submit", async e => {
-  e.preventDefault();
 
-  const name = $("mealName").value.trim();
-  const cal = Number($("mealCalories").value);
+/* =========================
+   MEAL FORM
+========================= */
 
-  if (!name || cal < 0) return;
+$("mealForm").addEventListener(
+  "submit",
+  async e => {
 
-  if (editingId) {
-    const ok = await updateMeal(
-      editingId,
-      name,
-      cal
-    );
+    /*
+      If Cancel was clicked,
+      allow the dialog form to close.
+    */
 
-    if (!ok) return;
-
-    const meal = getDay(selectedDate)
-      .meals
-      .find(m => m.id === editingId);
-
-    if (meal) {
-      meal.name = name;
-      meal.cal = cal;
+    if (
+      e.submitter &&
+      e.submitter.value === "cancel"
+    ) {
+      return;
     }
-  } else {
-    const ok = await saveMeal(name, cal);
 
-    if (!ok) return;
+    e.preventDefault();
 
-    await loadChallenge();
+    const name =
+      $("mealName").value.trim();
+
+    const cal =
+      Number(
+        $("mealCalories").value
+      );
+
+    if (
+      !name ||
+      cal < 0
+    ) {
+      return;
+    }
+
+    if (editingId) {
+
+      const ok =
+        await updateMeal(
+          editingId,
+          name,
+          cal
+        );
+
+      if (!ok) {
+        return;
+      }
+
+      const meal =
+        getDay(selectedDate)
+          .meals
+          .find(
+            m =>
+              m.id === editingId
+          );
+
+      if (meal) {
+
+        meal.name = name;
+        meal.cal = cal;
+      }
+
+    } else {
+
+      const ok =
+        await saveMeal(
+          name,
+          cal
+        );
+
+      if (!ok) {
+        return;
+      }
+
+      await loadChallenge();
+    }
+
+    $("mealDialog").close();
+
+    render();
   }
+);
 
-  $("mealDialog").close();
-  render();
-});
 
-$("addMealBtn").onclick = addMeal;
+/* =========================
+   BUTTONS
+========================= */
+
+$("addMealBtn").onclick =
+  addMeal;
+
 
 $("prevBtn").onclick = () => {
-  const d = parseDate(selectedDate);
-  d.setDate(d.getDate() - 1);
 
-  const x = iso(d);
+  const d =
+    parseDate(selectedDate);
+
+  d.setDate(
+    d.getDate() - 1
+  );
+
+  const x =
+    iso(d);
 
   if (validDate(x)) {
+
     selectedDate = x;
+
     render();
   }
 };
+
 
 $("nextBtn").onclick = () => {
-  const d = parseDate(selectedDate);
-  d.setDate(d.getDate() + 1);
 
-  const x = iso(d);
+  const d =
+    parseDate(selectedDate);
+
+  d.setDate(
+    d.getDate() + 1
+  );
+
+  const x =
+    iso(d);
 
   if (validDate(x)) {
+
     selectedDate = x;
+
     render();
   }
 };
 
+
 $("todayBtn").onclick = () => {
-  const t = todayISO();
+
+  const t =
+    todayISO();
 
   selectedDate =
     validDate(t)
@@ -680,203 +1248,450 @@ $("todayBtn").onclick = () => {
   render();
 };
 
-$("completeBtn").onclick = async () => {
-  const d = getDay(selectedDate);
-  const newValue = !d.manualMiss;
 
-  const { data: existing } = await db
-    .from("day_status")
-    .select("id")
-    .eq("challenge_id", challengeId)
-    .eq("day_date", selectedDate)
-    .maybeSingle();
+/* =========================
+   MARK DAY MISSED
+========================= */
 
-  let error;
+$("completeBtn").onclick =
+  async () => {
 
-  if (existing) {
-    ({ error } = await db
+    if (
+      isFutureDate(selectedDate)
+    ) {
+
+      alert(
+        "You cannot mark a future day as missed."
+      );
+
+      return;
+    }
+
+    const d =
+      getDay(selectedDate);
+
+    const newValue =
+      !d.manualMiss;
+
+    const {
+      data: existing
+    } = await db
       .from("day_status")
-      .update({
-        manual_miss: newValue
-      })
-      .eq("id", existing.id));
-  } else {
-    ({ error } = await db
-      .from("day_status")
-      .insert({
-        challenge_id: challengeId,
-        day_date: selectedDate,
-        manual_miss: newValue
-      }));
-  }
+      .select("id")
+      .eq(
+        "challenge_id",
+        challengeId
+      )
+      .eq(
+        "day_date",
+        selectedDate
+      )
+      .maybeSingle();
 
-  if (error) {
-    alert("Could not update day status: " + error.message);
+    let error;
+
+    if (existing) {
+
+      ({
+        error
+      } = await db
+        .from("day_status")
+        .update({
+          manual_miss:
+            newValue
+        })
+        .eq(
+          "id",
+          existing.id
+        ));
+
+    } else {
+
+      ({
+        error
+      } = await db
+        .from("day_status")
+        .insert({
+          challenge_id:
+            challengeId,
+          day_date:
+            selectedDate,
+          manual_miss:
+            newValue
+        }));
+    }
+
+    if (error) {
+
+      alert(
+        "Could not update day status: " +
+        error.message
+      );
+
+      return;
+    }
+
+    d.manualMiss =
+      newValue;
+
+    render();
+  };
+
+
+/* =========================
+   SETTINGS
+========================= */
+
+$("settingsBtn").onclick = () => {
+
+  if (!state) {
     return;
   }
 
-  d.manualMiss = newValue;
-  render();
-};
+  $("settingsTarget").value =
+    state.target;
 
-$("settingsBtn").onclick = () => {
-  if (!state) return;
-
-  $("settingsTarget").value = state.target;
-  $("settingsDate").value = state.startDate;
+  $("settingsDate").value =
+    state.startDate;
 
   $("settingsDialog").showModal();
 };
 
-$("settingsForm").addEventListener("submit", async e => {
-  e.preventDefault();
 
-  const target = Number($("settingsTarget").value);
-  const date = $("settingsDate").value;
+$("settingsForm").addEventListener(
+  "submit",
+  async e => {
 
-  if (!target || !date) return;
+    /*
+      Allow Cancel to close normally.
+    */
 
-  const { error } = await db
-    .from("challenges")
-    .update({
-      target,
-      start_date: date
-    })
-    .eq("id", challengeId)
-    .eq("user_id", currentUser.id);
+    if (
+      e.submitter &&
+      e.submitter.value === "cancel"
+    ) {
+      return;
+    }
 
-  if (error) {
-    alert("Could not save settings: " + error.message);
-    return;
+    e.preventDefault();
+
+    const target =
+      Number(
+        $("settingsTarget").value
+      );
+
+    const date =
+      $("settingsDate").value;
+
+    if (
+      !target ||
+      !date
+    ) {
+      return;
+    }
+
+    const { error } =
+      await db
+        .from("challenges")
+        .update({
+          target,
+          start_date: date
+        })
+        .eq(
+          "id",
+          challengeId
+        )
+        .eq(
+          "user_id",
+          currentUser.id
+        );
+
+    if (error) {
+
+      alert(
+        "Could not save settings: " +
+        error.message
+      );
+
+      return;
+    }
+
+    state.target =
+      target;
+
+    state.startDate =
+      date;
+
+    selectedDate =
+      validDate(todayISO())
+        ? todayISO()
+        : date;
+
+    $("settingsDialog").close();
+
+    render();
   }
+);
 
-  state.target = target;
-  state.startDate = date;
 
-  selectedDate =
-    validDate(todayISO())
-      ? todayISO()
-      : date;
+/* =========================
+   SETUP
+========================= */
 
-  $("settingsDialog").close();
+$("setupDate").value =
+  todayISO();
 
-  render();
-});
 
-$("setupDate").value = todayISO();
+$("startBtn").onclick =
+  async () => {
 
-$("startBtn").onclick = async () => {
-  const target = Number($("setupTarget").value);
-  const date = $("setupDate").value;
+    const target =
+      Number(
+        $("setupTarget").value
+      );
 
-  if (!target || target < 1 || !date) {
-    alert("Please enter a calorie target and start date.");
-    return;
-  }
+    const date =
+      $("setupDate").value;
 
-  $("startBtn").disabled = true;
-  $("startBtn").textContent = "Creating challenge...";
+    if (
+      !target ||
+      target < 1 ||
+      !date
+    ) {
 
-  const ok = await createChallenge(target, date);
+      alert(
+        "Please enter a calorie target and start date."
+      );
 
-  $("startBtn").disabled = false;
-  $("startBtn").textContent = "Start my 100 days";
+      return;
+    }
 
-  if (!ok) return;
+    $("startBtn").disabled =
+      true;
 
-  $("setup").classList.add("hidden");
-  $("app").classList.remove("hidden");
+    $("startBtn").textContent =
+      "Creating challenge...";
 
-  selectedDate =
-    validDate(todayISO())
-      ? todayISO()
-      : date;
+    const ok =
+      await createChallenge(
+        target,
+        date
+      );
 
-  render();
-};
+    $("startBtn").disabled =
+      false;
+
+    $("startBtn").textContent =
+      "Start my 100 days";
+
+    if (!ok) {
+      return;
+    }
+
+    $("setup").classList.add(
+      "hidden"
+    );
+
+    $("app").classList.remove(
+      "hidden"
+    );
+
+    selectedDate =
+      validDate(todayISO())
+        ? todayISO()
+        : date;
+
+    render();
+  };
+
+
+/* =========================
+   EXPORT
+========================= */
 
 $("exportBtn").onclick = () => {
-  const blob = new Blob(
-    [JSON.stringify(state, null, 2)],
-    { type: "application/json" }
-  );
 
-  const a = document.createElement("a");
+  const blob =
+    new Blob(
+      [
+        JSON.stringify(
+          state,
+          null,
+          2
+        )
+      ],
+      {
+        type:
+          "application/json"
+      }
+    );
 
-  a.href = URL.createObjectURL(blob);
-  a.download = "balanced-diet-100-days.json";
+  const a =
+    document.createElement("a");
+
+  a.href =
+    URL.createObjectURL(blob);
+
+  a.download =
+    "balanced-diet-100-days.json";
+
   a.click();
 
-  URL.revokeObjectURL(a.href);
+  URL.revokeObjectURL(
+    a.href
+  );
 };
 
-$("resetBtn").onclick = async () => {
-  if (!confirm("Reset the entire 100-day challenge?")) {
-    return;
-  }
 
-  const { error } = await db
-    .from("challenges")
-    .delete()
-    .eq("id", challengeId)
-    .eq("user_id", currentUser.id);
+/* =========================
+   RESET
+========================= */
 
-  if (error) {
-    alert("Could not reset challenge: " + error.message);
-    return;
-  }
+$("resetBtn").onclick =
+  async () => {
 
-  location.reload();
-};
+    if (
+      !confirm(
+        "Reset the entire 100-day challenge?"
+      )
+    ) {
+      return;
+    }
 
-$("importInput").onchange = e => {
-  const file = e.target.files[0];
+    const { error } =
+      await db
+        .from("challenges")
+        .delete()
+        .eq(
+          "id",
+          challengeId
+        )
+        .eq(
+          "user_id",
+          currentUser.id
+        );
 
-  if (!file) return;
+    if (error) {
 
-  alert("Import will be added after the main tracker is working.");
-};
+      alert(
+        "Could not reset challenge: " +
+        error.message
+      );
 
-function createLogoutButton() {
-  if ($("logoutBtn")) return;
+      return;
+    }
 
-  const button = document.createElement("button");
-
-  button.id = "logoutBtn";
-  button.className = "ghost";
-  button.textContent = "Log out";
-
-  button.onclick = async () => {
-    await db.auth.signOut();
     location.reload();
   };
 
-  document.querySelector(".topbar").appendChild(button);
-}
 
-async function afterLogin() {
-  const {
-    data: { user }
-  } = await db.auth.getUser();
+/* =========================
+   IMPORT
+========================= */
 
-  currentUser = user;
+$("importInput").onchange =
+  e => {
 
-  if (!currentUser) return;
+    const file =
+      e.target.files[0];
 
-  removeAuthUI();
-  createLogoutButton();
+    if (!file) {
+      return;
+    }
 
-  const loaded = await loadChallenge();
+    alert(
+      "Import will be added after the main tracker is working."
+    );
+  };
 
-  if (!loaded) {
-    $("setup").classList.remove("hidden");
-    $("app").classList.add("hidden");
-    $("setupDate").value = todayISO();
+
+/* =========================
+   LOGOUT
+========================= */
+
+function createLogoutButton() {
+
+  if ($("logoutBtn")) {
     return;
   }
 
-  $("setup").classList.add("hidden");
-  $("app").classList.remove("hidden");
+  const button =
+    document.createElement(
+      "button"
+    );
+
+  button.id =
+    "logoutBtn";
+
+  button.className =
+    "ghost";
+
+  button.textContent =
+    "Log out";
+
+  button.onclick =
+    async () => {
+
+      await db.auth.signOut();
+
+      location.reload();
+    };
+
+  document
+    .querySelector(".topbar")
+    .appendChild(button);
+}
+
+
+/* =========================
+   AFTER LOGIN
+========================= */
+
+async function afterLogin() {
+
+  const {
+    data: {
+      user
+    }
+  } = await db.auth.getUser();
+
+  currentUser =
+    user;
+
+  if (!currentUser) {
+    return;
+  }
+
+  removeAuthUI();
+
+  createLogoutButton();
+
+  const loaded =
+    await loadChallenge();
+
+  if (!loaded) {
+
+    $("setup")
+      .classList
+      .remove("hidden");
+
+    $("app")
+      .classList
+      .add("hidden");
+
+    $("setupDate").value =
+      todayISO();
+
+    return;
+  }
+
+  $("setup")
+    .classList
+    .add("hidden");
+
+  $("app")
+    .classList
+    .remove("hidden");
 
   selectedDate =
     validDate(todayISO())
@@ -886,29 +1701,55 @@ async function afterLogin() {
   render();
 }
 
+
+/* =========================
+   INITIALIZE
+========================= */
+
 async function init() {
+
   try {
+
     await loadSupabase();
 
     const {
-      data: { session }
-    } = await db.auth.getSession();
+      data: {
+        session
+      }
+    } =
+      await db.auth.getSession();
 
     if (session) {
+
       await afterLogin();
+
     } else {
-      $("setup").classList.add("hidden");
-      $("app").classList.add("hidden");
+
+      $("setup")
+        .classList
+        .add("hidden");
+
+      $("app")
+        .classList
+        .add("hidden");
+
       createAuthUI();
     }
 
-    db.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) {
-        afterLogin();
+    db.auth.onAuthStateChange(
+      (event, session) => {
+
+        if (
+          event === "SIGNED_IN" &&
+          session
+        ) {
+          afterLogin();
+        }
       }
-    });
+    );
 
   } catch (error) {
+
     console.error(error);
 
     document.body.insertAdjacentHTML(
@@ -930,5 +1771,6 @@ async function init() {
     );
   }
 }
+
 
 init();
