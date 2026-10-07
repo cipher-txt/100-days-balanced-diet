@@ -544,6 +544,10 @@ async function saveMeal(name, cal) {
   return true;
 }
 async function updateMeal(id, name, cal) {
+  if (selectedDate > todayISO()) {
+  alert("You cannot edit meals on a future day.");
+  return false;
+}
   const { error } = await db
     .from("meals")
     .update({
