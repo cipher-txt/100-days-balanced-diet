@@ -1363,22 +1363,8 @@ $("settingsBtn").onclick = () => {
 $("settingsForm").addEventListener(
   "submit",
   async e => {
-if (e.submitter && e.submitter.value === "cancel") {
-    return;
-  }
 
-  e.preventDefault();
-
-  // the rest of your existing code...
-});
-    /*
-      Allow Cancel to close normally.
-    */
-
-    if (
-      e.submitter &&
-      e.submitter.value === "cancel"
-    ) {
+    if (e.submitter && e.submitter.value === "cancel") {
       return;
     }
 
