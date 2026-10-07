@@ -1,12 +1,7 @@
-/* =========================================================
-   100 DAYS — BALANCED DIET
-   Supabase-powered version
-   ========================================================= */
-
 const SUPABASE_URL = "https://gaiikrirdociwrcjgiuu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Pa6_otztoPlyt052H325zg_91NJtYkX";
 
-let supabase;
+let db = null;
 let state = null;
 let selectedDate = null;
 let editingId = null;
@@ -37,14 +32,10 @@ const fmt = d =>
     year: "numeric"
   });
 
-/* =========================================================
-   LOAD SUPABASE
-   ========================================================= */
-
 function loadSupabase() {
   return new Promise((resolve, reject) => {
-    if (window.supabase) {
-      supabase = window.supabase.createClient(
+    if (window.supabase && window.supabase.createClient) {
+      db = window.supabase.createClient(
         SUPABASE_URL,
         SUPABASE_KEY
       );
@@ -53,34 +44,34 @@ function loadSupabase() {
     }
 
     const script = document.createElement("script");
-
-    script.src =
-      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+    script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 
     script.onload = () => {
-      supabase = window.supabase.createClient(
+      if (!window.supabase || !window.supabase.createClient) {
+        reject(new Error("Supabase library loaded incorrectly."));
+        return;
+      }
+
+      db = window.supabase.createClient(
         SUPABASE_URL,
         SUPABASE_KEY
       );
+
       resolve();
     };
 
-    script.onerror = () =>
+    script.onerror = () => {
       reject(new Error("Could not load Supabase."));
+    };
 
     document.head.appendChild(script);
   });
 }
 
-/* =========================================================
-   AUTH UI
-   ========================================================= */
-
 function createAuthUI() {
   if ($("authPanel")) return;
 
   const panel = document.createElement("section");
-
   panel.id = "authPanel";
   panel.className = "panel auth-panel";
 
@@ -88,6 +79,7 @@ function createAuthUI() {
     <div class="auth-box">
       <p class="eyebrow">YOUR ACCOUNT</p>
       <h1>100 Days — Balanced Diet</h1>
+
       <p class="muted">
         Sign in to keep your challenge and meals saved across devices.
       </p>
@@ -138,7 +130,7 @@ async function login() {
 
   authMessage("Logging in...");
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { error } = await db.auth.signInWithPassword({
     email,
     password
   });
@@ -167,7 +159,7 @@ async function signup() {
 
   authMessage("Creating account...");
 
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await db.auth.signUp({
     email,
     password
   });
@@ -187,12 +179,8 @@ async function signup() {
   await afterLogin();
 }
 
-/* =========================================================
-   SUPABASE DATA
-   ========================================================= */
-
 async function loadChallenge() {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("challenges")
     .select("*")
     .eq("user_id", currentUser.id)
@@ -202,7 +190,7 @@ async function loadChallenge() {
 
   if (error) {
     console.error(error);
-    alert("Could not load your challenge.");
+    alert("Could not load your challenge: " + error.message);
     return null;
   }
 
@@ -216,7 +204,7 @@ async function loadChallenge() {
     days: {}
   };
 
-  const { data: meals, error: mealError } = await supabase
+  const { data: meals, error: mealError } = await db
     .from("meals")
     .select("*")
     .eq("challenge_id", challengeId)
@@ -224,7 +212,7 @@ async function loadChallenge() {
 
   if (mealError) {
     console.error(mealError);
-    alert("Could not load your meals.");
+    alert("Could not load your meals: " + mealError.message);
     return null;
   }
 
@@ -243,41 +231,38 @@ async function loadChallenge() {
     });
   });
 
-  const { data: misses, error: missError } = await supabase
+  const { data: misses } = await db
     .from("day_status")
     .select("*")
     .eq("challenge_id", challengeId);
 
-  if (!missError) {
-    (misses || []).forEach(item => {
-      if (!state.days[item.day_date]) {
-        state.days[item.day_date] = {
-          meals: [],
-          manualMiss: false
-        };
-      }
+  (misses || []).forEach(item => {
+    if (!state.days[item.day_date]) {
+      state.days[item.day_date] = {
+        meals: [],
+        manualMiss: false
+      };
+    }
 
-      state.days[item.day_date].manualMiss =
-        item.manual_miss === true;
-    });
-  }
+    state.days[item.day_date].manualMiss =
+      item.manual_miss === true;
+  });
 
   return state;
 }
 
 async function createChallenge(target, date) {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("challenges")
     .insert({
       user_id: currentUser.id,
-      target: target,
+      target,
       start_date: date
     })
     .select()
     .single();
 
   if (error) {
-    console.error(error);
     alert("Could not create your challenge: " + error.message);
     return false;
   }
@@ -285,114 +270,13 @@ async function createChallenge(target, date) {
   challengeId = data.id;
 
   state = {
-    target: target,
+    target,
     startDate: date,
     days: {}
   };
 
   return true;
 }
-
-async function saveMealToSupabase(meal) {
-  const { error } = await supabase
-    .from("meals")
-    .insert({
-      challenge_id: challengeId,
-      meal_date: selectedDate,
-      name: meal.name,
-      calories: meal.cal
-    });
-
-  if (error) {
-    console.error(error);
-    alert("Could not save the meal: " + error.message);
-    return false;
-  }
-
-  return true;
-}
-
-async function updateMealInSupabase(id, name, calories) {
-  const { error } = await supabase
-    .from("meals")
-    .update({
-      name,
-      calories
-    })
-    .eq("id", id)
-    .eq("challenge_id", challengeId);
-
-  if (error) {
-    console.error(error);
-    alert("Could not update the meal.");
-    return false;
-  }
-
-  return true;
-}
-
-async function deleteMealFromSupabase(id) {
-  const { error } = await supabase
-    .from("meals")
-    .delete()
-    .eq("id", id)
-    .eq("challenge_id", challengeId);
-
-  if (error) {
-    console.error(error);
-    alert("Could not delete the meal.");
-    return false;
-  }
-
-  return true;
-}
-
-async function saveMissedStatus(date, missed) {
-  const { data: existing, error: findError } = await supabase
-    .from("day_status")
-    .select("id")
-    .eq("challenge_id", challengeId)
-    .eq("day_date", date)
-    .maybeSingle();
-
-  if (findError) {
-    console.error(findError);
-    return false;
-  }
-
-  if (existing) {
-    const { error } = await supabase
-      .from("day_status")
-      .update({
-        manual_miss: missed
-      })
-      .eq("id", existing.id);
-
-    if (error) {
-      console.error(error);
-      return false;
-    }
-  } else {
-    const { error } = await supabase
-      .from("day_status")
-      .insert({
-        challenge_id: challengeId,
-        day_date: date,
-        manual_miss: missed
-      });
-
-    if (error) {
-      console.error(error);
-      return false;
-    }
-  }
-
-  return true;
-}
-
-/* =========================================================
-   CHALLENGE LOGIC
-   ========================================================= */
 
 function dayIndex(date) {
   const start = parseDate(state.startDate);
@@ -430,20 +314,17 @@ function status(date) {
 
   if (d.manualMiss) return "fail";
   if (!d.meals.length) return "empty";
+  if (c <= Number(state.target)) return "done";
+  if (c <= max) return "warn";
 
-  return c <= Number(state.target)
-    ? "done"
-    : c <= max
-    ? "warn"
-    : "fail";
+  return "fail";
 }
 
 function streak() {
   let s = 0;
 
-  const end = todayISO();
   const start = parseDate(state.startDate);
-  const now = parseDate(end);
+  const now = parseDate(todayISO());
 
   if (now < start) return 0;
 
@@ -459,10 +340,9 @@ function streak() {
       )
     );
 
-    if (
-      status(d) === "done" ||
-      status(d) === "warn"
-    ) {
+    const st = status(d);
+
+    if (st === "done" || st === "warn") {
       s++;
     } else {
       break;
@@ -471,10 +351,6 @@ function streak() {
 
   return s;
 }
-
-/* =========================================================
-   RENDER
-   ========================================================= */
 
 function render() {
   if (!state || !selectedDate) return;
@@ -489,29 +365,19 @@ function render() {
 
   $("dateLabel").textContent = fmt(selectedDate);
 
-  $("consumed").textContent =
-    c.toLocaleString();
-
-  $("target").textContent =
-    Number(state.target).toLocaleString();
+  $("consumed").textContent = c.toLocaleString();
+  $("target").textContent = Number(state.target).toLocaleString();
 
   $("remaining").textContent =
-    Math.max(
-      0,
-      Number(state.target) - c
-    ).toLocaleString();
+    Math.max(0, Number(state.target) - c).toLocaleString();
 
   $("streak").textContent = streak();
 
   $("sideTarget").textContent =
-    Number(state.target).toLocaleString() +
-    " kcal";
+    Number(state.target).toLocaleString() + " kcal";
 
   $("sideMax").textContent =
     max.toLocaleString() + " kcal";
-
-  $("limitLabel").textContent =
-    "Target + 100 kcal";
 
   const pct = Math.min(
     100,
@@ -521,16 +387,24 @@ function render() {
   $("percent").textContent = pct + "%";
   $("barFill").style.width = pct + "%";
 
+  $("statusText").textContent =
+    st === "done"
+      ? "Within target"
+      : st === "warn"
+      ? "Within +100 kcal allowance"
+      : st === "fail"
+      ? "Day failed"
+      : "No meals logged";
+
   const badge = $("dayBadge");
-  const msg = $("dayMessage");
 
   badge.className =
     "badge " +
     (
       st === "done"
-        ? "good"
+        ? "success"
         : st === "warn"
-        ? "warn"
+        ? "warning"
         : st === "fail"
         ? "fail"
         : "neutral"
@@ -545,11 +419,11 @@ function render() {
       ? "Failed"
       : "Not logged";
 
-  msg.textContent =
+  $("dayMessage").textContent =
     st === "done"
       ? "Within your daily target."
       : st === "warn"
-      ? "You are within the extra 100 kcal allowance, but this should not become the everyday target."
+      ? "Within the extra 100 kcal allowance."
       : st === "fail"
       ? "This day is over the allowance or was marked missed. The streak resets."
       : "Log your meals to see today's result.";
@@ -560,7 +434,6 @@ function render() {
       : "Mark day as missed";
 
   const list = $("mealList");
-
   list.innerHTML = "";
 
   const meals = getDay(selectedDate).meals;
@@ -577,24 +450,13 @@ function render() {
 
     el.innerHTML = `
       <div>
-        <div class="meal-name">
-          ${esc(m.name)}
-        </div>
-        <div class="muted">
-          ${Number(m.cal).toLocaleString()} kcal
-        </div>
+        <div class="meal-name">${esc(m.name)}</div>
+        <div class="meal-calories">${Number(m.cal).toLocaleString()} kcal</div>
       </div>
 
       <div class="meal-actions">
-        <button class="text-btn"
-          onclick="editMeal('${m.id}')">
-          Edit
-        </button>
-
-        <button class="text-btn"
-          onclick="deleteMeal('${m.id}')">
-          Delete
-        </button>
+        <button onclick="editMeal('${m.id}')">Edit</button>
+        <button onclick="deleteMeal('${m.id}')">Delete</button>
       </div>
     `;
 
@@ -606,7 +468,6 @@ function render() {
 
 function renderCalendar() {
   const cal = $("calendar");
-
   cal.innerHTML = "";
 
   const start = parseDate(state.startDate);
@@ -619,18 +480,15 @@ function renderCalendar() {
       )
     );
 
-    const s = status(d);
-
     const el = document.createElement("button");
 
     el.className =
       "day " +
-      s +
+      status(d) +
       (d === selectedDate ? " selected" : "");
 
-    el.title = `Day ${i} • ${fmt(d)}`;
-
     el.textContent = i;
+    el.title = `Day ${i} • ${fmt(d)}`;
 
     if (d > today) {
       el.classList.add("future");
@@ -659,9 +517,63 @@ function esc(s) {
   );
 }
 
-/* =========================================================
-   MEALS
-   ========================================================= */
+async function saveMeal(name, cal) {
+  const { error } = await db
+    .from("meals")
+    .insert({
+      challenge_id: challengeId,
+      meal_date: selectedDate,
+      name,
+      calories: cal
+    });
+
+  if (error) {
+    alert("Could not save meal: " + error.message);
+    return false;
+  }
+
+  return true;
+}
+
+async function updateMeal(id, name, cal) {
+  const { error } = await db
+    .from("meals")
+    .update({
+      name,
+      calories: cal
+    })
+    .eq("id", id)
+    .eq("challenge_id", challengeId);
+
+  if (error) {
+    alert("Could not update meal: " + error.message);
+    return false;
+  }
+
+  return true;
+}
+
+async function deleteMeal(id) {
+  if (!confirm("Delete this meal?")) return;
+
+  const { error } = await db
+    .from("meals")
+    .delete()
+    .eq("id", id)
+    .eq("challenge_id", challengeId);
+
+  if (error) {
+    alert("Could not delete meal: " + error.message);
+    return;
+  }
+
+  getDay(selectedDate).meals =
+    getDay(selectedDate).meals.filter(
+      m => m.id !== id
+    );
+
+  render();
+}
 
 function addMeal() {
   editingId = null;
@@ -671,104 +583,65 @@ function addMeal() {
   $("mealCalories").value = "";
 
   $("mealDialog").showModal();
-
-  setTimeout(
-    () => $("mealName").focus(),
-    50
-  );
 }
 
 function editMeal(id) {
-  const m = getDay(selectedDate)
+  const meal = getDay(selectedDate)
     .meals
-    .find(x => x.id === id);
+    .find(m => m.id === id);
 
-  if (!m) return;
+  if (!meal) return;
 
   editingId = id;
 
-  $("dialogTitle").textContent =
-    "Edit meal";
-
-  $("mealName").value = m.name;
-  $("mealCalories").value = m.cal;
+  $("dialogTitle").textContent = "Edit meal";
+  $("mealName").value = meal.name;
+  $("mealCalories").value = meal.cal;
 
   $("mealDialog").showModal();
 }
 
-async function deleteMeal(id) {
-  if (!confirm("Delete this meal?")) return;
+$("mealForm").addEventListener("submit", async e => {
+  e.preventDefault();
 
-  const ok = await deleteMealFromSupabase(id);
+  const name = $("mealName").value.trim();
+  const cal = Number($("mealCalories").value);
 
-  if (!ok) return;
+  if (!name || cal < 0) return;
 
-  getDay(selectedDate).meals =
-    getDay(selectedDate).meals.filter(
-      x => x.id !== id
+  if (editingId) {
+    const ok = await updateMeal(
+      editingId,
+      name,
+      cal
     );
 
-  render();
-}
+    if (!ok) return;
 
-$("mealForm").addEventListener(
-  "submit",
-  async e => {
-    e.preventDefault();
+    const meal = getDay(selectedDate)
+      .meals
+      .find(m => m.id === editingId);
 
-    const name =
-      $("mealName").value.trim();
-
-    const cal =
-      Number($("mealCalories").value);
-
-    if (!name || cal < 0) return;
-
-    if (editingId) {
-      const ok =
-        await updateMealInSupabase(
-          editingId,
-          name,
-          cal
-        );
-
-      if (!ok) return;
-
-      const m = getDay(selectedDate)
-        .meals
-        .find(x => x.id === editingId);
-
-      if (m) {
-        m.name = name;
-        m.cal = cal;
-      }
-    } else {
-      const ok =
-        await saveMealToSupabase({
-          name,
-          cal
-        });
-
-      if (!ok) return;
-
-      await loadChallenge();
+    if (meal) {
+      meal.name = name;
+      meal.cal = cal;
     }
+  } else {
+    const ok = await saveMeal(name, cal);
 
-    $("mealDialog").close();
+    if (!ok) return;
 
-    render();
+    await loadChallenge();
   }
-);
 
-/* =========================================================
-   NAVIGATION
-   ========================================================= */
+  $("mealDialog").close();
+  render();
+});
 
 $("addMealBtn").onclick = addMeal;
 
 $("prevBtn").onclick = () => {
   const d = parseDate(selectedDate);
-
   d.setDate(d.getDate() - 1);
 
   const x = iso(d);
@@ -781,7 +654,6 @@ $("prevBtn").onclick = () => {
 
 $("nextBtn").onclick = () => {
   const d = parseDate(selectedDate);
-
   d.setDate(d.getDate() + 1);
 
   const x = iso(d);
@@ -803,121 +675,107 @@ $("todayBtn").onclick = () => {
   render();
 };
 
-/* =========================================================
-   MISSED DAY
-   ========================================================= */
-
 $("completeBtn").onclick = async () => {
   const d = getDay(selectedDate);
-
   const newValue = !d.manualMiss;
 
-  const ok =
-    await saveMissedStatus(
-      selectedDate,
-      newValue
-    );
+  const { data: existing } = await db
+    .from("day_status")
+    .select("id")
+    .eq("challenge_id", challengeId)
+    .eq("day_date", selectedDate)
+    .maybeSingle();
 
-  if (!ok) return;
+  let error;
+
+  if (existing) {
+    ({ error } = await db
+      .from("day_status")
+      .update({
+        manual_miss: newValue
+      })
+      .eq("id", existing.id));
+  } else {
+    ({ error } = await db
+      .from("day_status")
+      .insert({
+        challenge_id: challengeId,
+        day_date: selectedDate,
+        manual_miss: newValue
+      }));
+  }
+
+  if (error) {
+    alert("Could not update day status: " + error.message);
+    return;
+  }
 
   d.manualMiss = newValue;
-
   render();
 };
-
-/* =========================================================
-   SETTINGS
-   ========================================================= */
 
 $("settingsBtn").onclick = () => {
   if (!state) return;
 
-  $("settingsTarget").value =
-    state.target;
-
-  $("settingsDate").value =
-    state.startDate;
+  $("settingsTarget").value = state.target;
+  $("settingsDate").value = state.startDate;
 
   $("settingsDialog").showModal();
 };
 
-$("settingsForm").addEventListener(
-  "submit",
-  async e => {
-    e.preventDefault();
+$("settingsForm").addEventListener("submit", async e => {
+  e.preventDefault();
 
-    const target =
-      Number($("settingsTarget").value);
+  const target = Number($("settingsTarget").value);
+  const date = $("settingsDate").value;
 
-    const date =
-      $("settingsDate").value;
+  if (!target || !date) return;
 
-    if (!target || !date) return;
+  const { error } = await db
+    .from("challenges")
+    .update({
+      target,
+      start_date: date
+    })
+    .eq("id", challengeId)
+    .eq("user_id", currentUser.id);
 
-    const { error } = await supabase
-      .from("challenges")
-      .update({
-        target,
-        start_date: date
-      })
-      .eq("id", challengeId)
-      .eq("user_id", currentUser.id);
-
-    if (error) {
-      alert(
-        "Could not save settings: " +
-        error.message
-      );
-      return;
-    }
-
-    state.target = target;
-    state.startDate = date;
-
-    selectedDate =
-      validDate(todayISO())
-        ? todayISO()
-        : date;
-
-    $("settingsDialog").close();
-
-    render();
+  if (error) {
+    alert("Could not save settings: " + error.message);
+    return;
   }
-);
 
-/* =========================================================
-   CREATE FIRST CHALLENGE
-   ========================================================= */
+  state.target = target;
+  state.startDate = date;
+
+  selectedDate =
+    validDate(todayISO())
+      ? todayISO()
+      : date;
+
+  $("settingsDialog").close();
+
+  render();
+});
 
 $("setupDate").value = todayISO();
 
 $("startBtn").onclick = async () => {
-  const target =
-    Number($("setupTarget").value);
-
-  const date =
-    $("setupDate").value;
+  const target = Number($("setupTarget").value);
+  const date = $("setupDate").value;
 
   if (!target || target < 1 || !date) {
-    alert(
-      "Please enter a calorie target and start date."
-    );
+    alert("Please enter a calorie target and start date.");
     return;
   }
 
   $("startBtn").disabled = true;
-  $("startBtn").textContent =
-    "Creating challenge...";
+  $("startBtn").textContent = "Creating challenge...";
 
-  const ok =
-    await createChallenge(
-      target,
-      date
-    );
+  const ok = await createChallenge(target, date);
 
   $("startBtn").disabled = false;
-  $("startBtn").textContent =
-    "Start my 100 days";
+  $("startBtn").textContent = "Start my 100 days";
 
   if (!ok) return;
 
@@ -932,166 +790,83 @@ $("startBtn").onclick = async () => {
   render();
 };
 
-/* =========================================================
-   EXPORT
-   ========================================================= */
-
 $("exportBtn").onclick = () => {
   const blob = new Blob(
-    [
-      JSON.stringify(
-        state,
-        null,
-        2
-      )
-    ],
-    {
-      type: "application/json"
-    }
+    [JSON.stringify(state, null, 2)],
+    { type: "application/json" }
   );
 
-  const a =
-    document.createElement("a");
+  const a = document.createElement("a");
 
-  a.href =
-    URL.createObjectURL(blob);
-
-  a.download =
-    "balanced-diet-100-days.json";
-
+  a.href = URL.createObjectURL(blob);
+  a.download = "balanced-diet-100-days.json";
   a.click();
 
   URL.revokeObjectURL(a.href);
 };
 
-/* =========================================================
-   IMPORT
-   ========================================================= */
-
-$("importInput").onchange = e => {
-  const f = e.target.files[0];
-
-  if (!f) return;
-
-  const r = new FileReader();
-
-  r.onload = () => {
-    try {
-      const x =
-        JSON.parse(r.result);
-
-      if (
-        !x.target ||
-        !x.startDate ||
-        !x.days
-      ) {
-        throw Error();
-      }
-
-      alert(
-        "Import is only available for backup viewing in this version. Your Supabase data remains unchanged."
-      );
-    } catch {
-      alert(
-        "That file is not a valid challenge backup."
-      );
-    }
-  };
-
-  r.readAsText(f);
-};
-
-/* =========================================================
-   RESET CHALLENGE
-   ========================================================= */
-
 $("resetBtn").onclick = async () => {
-  if (
-    !confirm(
-      "Reset the entire 100-day challenge and delete its cloud data?"
-    )
-  ) {
+  if (!confirm("Reset the entire 100-day challenge?")) {
     return;
   }
 
-  const { error } = await supabase
+  const { error } = await db
     .from("challenges")
     .delete()
     .eq("id", challengeId)
     .eq("user_id", currentUser.id);
 
   if (error) {
-    alert(
-      "Could not reset the challenge: " +
-      error.message
-    );
+    alert("Could not reset challenge: " + error.message);
     return;
   }
-
-  state = null;
-  challengeId = null;
 
   location.reload();
 };
 
-/* =========================================================
-   LOGOUT BUTTON
-   ========================================================= */
+$("importInput").onchange = e => {
+  const file = e.target.files[0];
+
+  if (!file) return;
+
+  alert("Import will be added after the main tracker is working.");
+};
 
 function createLogoutButton() {
   if ($("logoutBtn")) return;
 
-  const button =
-    document.createElement("button");
+  const button = document.createElement("button");
 
   button.id = "logoutBtn";
   button.className = "ghost";
   button.textContent = "Log out";
 
   button.onclick = async () => {
-    await supabase.auth.signOut();
+    await db.auth.signOut();
     location.reload();
   };
 
-  const topbar =
-    document.querySelector(".topbar");
-
-  if (topbar) {
-    topbar.appendChild(button);
-  }
+  document.querySelector(".topbar").appendChild(button);
 }
-
-/* =========================================================
-   LOGIN SUCCESS
-   ========================================================= */
 
 async function afterLogin() {
   const {
-    data: {
-      user
-    }
-  } = await supabase.auth.getUser();
+    data: { user }
+  } = await db.auth.getUser();
 
   currentUser = user;
 
-  if (!currentUser) {
-    alert("Could not identify your account.");
-    return;
-  }
+  if (!currentUser) return;
 
   removeAuthUI();
   createLogoutButton();
 
-  const loaded =
-    await loadChallenge();
+  const loaded = await loadChallenge();
 
   if (!loaded) {
     $("setup").classList.remove("hidden");
     $("app").classList.add("hidden");
-
-    $("setupDate").value =
-      todayISO();
-
+    $("setupDate").value = todayISO();
     return;
   }
 
@@ -1106,19 +881,13 @@ async function afterLogin() {
   render();
 }
 
-/* =========================================================
-   START APPLICATION
-   ========================================================= */
-
 async function init() {
   try {
     await loadSupabase();
 
     const {
-      data: {
-        session
-      }
-    } = await supabase.auth.getSession();
+      data: { session }
+    } = await db.auth.getSession();
 
     if (session) {
       await afterLogin();
@@ -1128,21 +897,31 @@ async function init() {
       createAuthUI();
     }
 
-    supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (
-          event === "SIGNED_IN" &&
-          session
-        ) {
-          await afterLogin();
-        }
+    db.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        afterLogin();
       }
-    );
+    });
+
   } catch (error) {
     console.error(error);
 
-    alert(
-      "Supabase could not be loaded. Check your internet connection and try again."
+    document.body.insertAdjacentHTML(
+      "afterbegin",
+      `
+      <div style="
+        padding:20px;
+        margin:20px;
+        background:#fee;
+        color:#900;
+        border:1px solid #d88;
+        border-radius:10px;
+        font-family:system-ui;
+      ">
+        <strong>App error:</strong>
+        ${esc(error.message)}
+      </div>
+      `
     );
   }
 }
