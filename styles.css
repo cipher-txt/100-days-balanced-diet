@@ -670,10 +670,10 @@ dialog form{
 
 /* Mobile calendar overflow fix */
 @media (max-width: 600px){
-  .calendar-panel{
+   .calendar-panel{
     min-width:0;
     width:100%;
-    overflow:hidden;
+    overflow:visible;
   }
   .calendar-panel .section-head{
     min-width:0;
@@ -683,14 +683,15 @@ dialog form{
     min-width:0;
     max-width:100%;
   }
-  .calendar{
+   .calendar{
     display:grid;
     grid-template-columns:repeat(5,minmax(0,1fr)) !important;
     width:100% !important;
     max-width:100% !important;
     min-width:0 !important;
     gap:5px !important;
-    overflow:hidden !important;
+    overflow:visible !important;
+    padding:3px;
   }
   .calendar .day{
     min-width:0 !important;
