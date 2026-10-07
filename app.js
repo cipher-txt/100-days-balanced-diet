@@ -522,6 +522,11 @@ function esc(s) {
 }
 
 async function saveMeal(name, cal) {
+  if (selectedDate > todayISO()) {
+    alert("You cannot add meals to a future day.");
+    return false;
+  }
+
   const { error } = await db
     .from("meals")
     .insert({
@@ -538,7 +543,6 @@ async function saveMeal(name, cal) {
 
   return true;
 }
-
 async function updateMeal(id, name, cal) {
   const { error } = await db
     .from("meals")
