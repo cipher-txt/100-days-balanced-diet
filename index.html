@@ -17,7 +17,10 @@
     <span>Balanced Diet</span>
   </div>
 
-  <button id="settingsBtn" class="icon-btn" aria-label="Settings">⚙</button>
+  <div class="top-actions">
+    <button id="themeToggle" class="icon-btn" aria-label="Toggle dark mode" title="Toggle dark mode">☾</button>
+    <button id="settingsBtn" class="icon-btn" aria-label="Settings">⚙</button>
+  </div>
 </header>
 
 <main class="wrap">
@@ -391,6 +394,32 @@
 
 
 <script src="app.js"></script>
+<script>
+(function () {
+  const savedTheme = localStorage.getItem("balancedDietTheme");
+  if (savedTheme === "dark") {
+    document.documentElement.classList.add("dark");
+  }
+
+  const toggle = document.getElementById("themeToggle");
+  if (!toggle) return;
+
+  function updateIcon() {
+    const dark = document.documentElement.classList.contains("dark");
+    toggle.textContent = dark ? "☀" : "☾";
+    toggle.title = dark ? "Switch to light mode" : "Switch to dark mode";
+    toggle.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+  }
+
+  updateIcon();
+
+  toggle.onclick = function () {
+    const dark = document.documentElement.classList.toggle("dark");
+    localStorage.setItem("balancedDietTheme", dark ? "dark" : "light");
+    updateIcon();
+  };
+})();
+</script>
 
 </body>
 </html>
