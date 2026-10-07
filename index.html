@@ -8,58 +8,389 @@
 <title>100 Days — Balanced Diet</title>
 <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-<header class="topbar"><div class="brand"><span class="mark">100</span><span>Balanced Diet</span></div><button id="settingsBtn" class="icon-btn" aria-label="Settings">⚙</button></header>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="mark">100</span>
+    <span>Balanced Diet</span>
+  </div>
+
+  <button id="settingsBtn" class="icon-btn" aria-label="Settings">⚙</button>
+</header>
+
 <main class="wrap">
+
 <section id="setup" class="panel setup hidden">
-  <p class="eyebrow">100 DAY CHALLENGE</p><h1>Build consistency, one day at a time.</h1>
-  <p class="muted">Set your daily calorie target and start your 100-day record. Your data stays in this browser.</p>
-  <div class="form-grid"><label>Daily calorie target<input id="setupTarget" type="number" min="1" step="1" placeholder="e.g. 2000"></label><label>Start date<input id="setupDate" type="date"></label></div>
-  <button id="startBtn" class="primary">Start my 100 days</button>
-  <p class="tiny">This tracker records the target you choose; it does not determine what calorie intake is appropriate for you.</p>
+  <p class="eyebrow">100 DAY CHALLENGE</p>
+
+  <h1>Build consistency, one day at a time.</h1>
+
+  <p class="muted">
+    Set your daily calorie target and start your 100-day record.
+    Your challenge data is saved securely to your account.
+  </p>
+
+  <div class="form-grid">
+
+    <label>
+      Daily calorie target
+      <input
+        id="setupTarget"
+        type="number"
+        min="1"
+        step="1"
+        placeholder="e.g. 2000"
+      >
+    </label>
+
+    <label>
+      Start date
+      <input
+        id="setupDate"
+        type="date"
+      >
+    </label>
+
+  </div>
+
+  <button id="startBtn" class="primary">
+    Start my 100 days
+  </button>
+
+  <p class="tiny">
+    This tracker records the target you choose; it does not determine
+    what calorie intake is appropriate for you.
+  </p>
 </section>
+
 
 <div id="app" class="hidden">
+
 <section class="hero">
- <div><p class="eyebrow">DAY <span id="dayNumber">1</span> OF 100</p><h1 id="challengeTitle">100 Days — Balanced Diet</h1><p id="dateLabel" class="muted"></p></div>
- <div class="hero-actions"><button id="prevBtn" class="ghost">←</button><button id="todayBtn" class="ghost">Today</button><button id="nextBtn" class="ghost">→</button></div>
+
+  <div>
+    <p class="eyebrow">
+      DAY <span id="dayNumber">1</span> OF 100
+    </p>
+
+    <h1 id="challengeTitle">
+      100 Days — Balanced Diet
+    </h1>
+
+    <p id="dateLabel" class="muted"></p>
+  </div>
+
+  <div class="hero-actions">
+    <button id="prevBtn" class="ghost">←</button>
+    <button id="todayBtn" class="ghost">Today</button>
+    <button id="nextBtn" class="ghost">→</button>
+  </div>
+
 </section>
+
+
 <section class="stats">
- <div class="stat"><span>Consumed</span><strong id="consumed">0</strong><small>kcal</small></div>
- <div class="stat"><span>Target</span><strong id="target">0</strong><small>kcal</small></div>
- <div class="stat"><span>Remaining</span><strong id="remaining">0</strong><small>kcal</small></div>
- <div class="stat"><span>Streak</span><strong id="streak">0</strong><small>days</small></div>
+
+  <div class="stat">
+    <span>Consumed</span>
+    <strong id="consumed">0</strong>
+    <small>kcal</small>
+  </div>
+
+  <div class="stat">
+    <span>Target</span>
+    <strong id="target">0</strong>
+    <small>kcal</small>
+  </div>
+
+  <div class="stat">
+    <span>Remaining</span>
+    <strong id="remaining">0</strong>
+    <small>kcal</small>
+  </div>
+
+  <div class="stat">
+    <span>Streak</span>
+    <strong id="streak">0</strong>
+    <small>days</small>
+  </div>
+
 </section>
+
+
 <section class="panel progress-panel">
- <div class="progress-head"><span id="statusText">No meals logged</span><strong id="percent">0%</strong></div>
- <div class="bar"><div id="barFill"></div></div>
- <div class="range"><span>0</span><span id="limitLabel">Target + 100 kcal</span></div>
+
+  <div class="progress-head">
+    <span id="statusText">No meals logged</span>
+    <strong id="percent">0%</strong>
+  </div>
+
+  <div class="bar">
+    <div id="barFill"></div>
+  </div>
+
+  <div class="range">
+    <span>0</span>
+    <span id="limitLabel">Target + 100 kcal</span>
+  </div>
+
 </section>
+
+
 <section class="content-grid">
- <div class="panel">
-  <div class="section-head"><div><p class="eyebrow">TODAY'S LOG</p><h2>Meals</h2></div><button id="addMealBtn" class="primary small">+ Add meal</button></div>
-  <div id="mealList" class="meal-list"></div>
-  <div id="emptyMeals" class="empty">No meals yet. Add what you eat and enter its calories.</div>
- </div>
- <aside class="panel summary">
-  <p class="eyebrow">DAY STATUS</p><div id="dayBadge" class="badge neutral">Not logged</div>
-  <p class="muted" id="dayMessage">Log your meals to see today's result.</p>
-  <hr><div class="mini-row"><span>Daily target</span><strong id="sideTarget">0 kcal</strong></div><div class="mini-row"><span>Allowed maximum</span><strong id="sideMax">0 kcal</strong></div>
-  <button id="completeBtn" class="secondary">Mark day as missed</button>
- </aside>
+
+  <div class="panel">
+
+    <div class="section-head">
+
+      <div>
+        <p class="eyebrow">TODAY'S LOG</p>
+        <h2>Meals</h2>
+      </div>
+
+      <button id="addMealBtn" class="primary small">
+        + Add meal
+      </button>
+
+    </div>
+
+    <div id="mealList" class="meal-list"></div>
+
+    <div id="emptyMeals" class="empty">
+      No meals yet. Add what you eat and enter its calories.
+    </div>
+
+  </div>
+
+
+  <aside class="panel summary">
+
+    <p class="eyebrow">DAY STATUS</p>
+
+    <div id="dayBadge" class="badge neutral">
+      Not logged
+    </div>
+
+    <p class="muted" id="dayMessage">
+      Log your meals to see today's result.
+    </p>
+
+    <hr>
+
+    <div class="mini-row">
+      <span>Daily target</span>
+      <strong id="sideTarget">0 kcal</strong>
+    </div>
+
+    <div class="mini-row">
+      <span>Allowed maximum</span>
+      <strong id="sideMax">0 kcal</strong>
+    </div>
+
+    <button id="completeBtn" class="secondary">
+      Mark day as missed
+    </button>
+
+  </aside>
+
 </section>
+
+
 <section class="panel calendar-panel">
- <div class="section-head"><div><p class="eyebrow">PROGRESS</p><h2>100-day calendar</h2></div><div class="legend"><span><i class="done"></i> Complete</span><span><i class="over"></i> +100 or less</span><span><i class="fail"></i> Failed</span><span><i class="empty-dot"></i> Future</span></div></div>
- <div id="calendar" class="calendar"></div>
+
+  <div class="section-head">
+
+    <div>
+      <p class="eyebrow">PROGRESS</p>
+      <h2>100-day calendar</h2>
+    </div>
+
+    <div class="legend">
+      <span>
+        <i class="done"></i>
+        Complete
+      </span>
+
+      <span>
+        <i class="over"></i>
+        +100 or less
+      </span>
+
+      <span>
+        <i class="fail"></i>
+        Failed
+      </span>
+
+      <span>
+        <i class="empty-dot"></i>
+        Future
+      </span>
+    </div>
+
+  </div>
+
+  <div id="calendar" class="calendar"></div>
+
 </section>
+
+
 <section class="panel tools">
- <button id="exportBtn" class="ghost">Export data</button><label class="ghost file-label">Import data<input id="importInput" type="file" accept="application/json"></label><button id="resetBtn" class="danger">Reset challenge</button>
+
+  <button id="exportBtn" class="ghost">
+    Export data
+  </button>
+
+  <label class="ghost file-label">
+    Import data
+    <input
+      id="importInput"
+      type="file"
+      accept="application/json"
+    >
+  </label>
+
+  <button id="resetBtn" class="danger">
+    Reset challenge
+  </button>
+
 </section>
-<footer><span>100 Days — Balanced Diet</span><span>Your data is stored locally in this browser.</span></footer>
+
+
+<footer>
+  <span>100 Days — Balanced Diet</span>
+  <span>Your data is securely stored in your account.</span>
+</footer>
+
 </div>
+
 </main>
 
-<dialog id="mealDialog"><form method="dialog" id="mealForm"><div class="dialog-head"><h2 id="dialogTitle">Add meal</h2><button value="cancel" class="icon-btn">×</button></div><label>Meal name<input id="mealName" required placeholder="Breakfast, lunch, snack..."></label><label>Calories<input id="mealCalories" required type="number" min="0" step="1" placeholder="e.g. 520"></label><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button><button id="saveMealBtn" value="default" class="primary">Save meal</button></div></form></dialog>
-<dialog id="settingsDialog"><form method="dialog" id="settingsForm"><div class="dialog-head"><h2>Challenge settings</h2><button value="cancel" class="icon-btn">×</button></div><label>Daily calorie target<input id="settingsTarget" type="number" min="1"></label><label>Challenge start date<input id="settingsDate" type="date"></label><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button><button id="saveSettings" value="default" class="primary">Save changes</button></div></form></dialog>
+
+<dialog id="mealDialog">
+
+  <form method="dialog" id="mealForm">
+
+    <div class="dialog-head">
+
+      <h2 id="dialogTitle">
+        Add meal
+      </h2>
+
+      <button
+        value="cancel"
+        class="icon-btn"
+      >
+        ×
+      </button>
+
+    </div>
+
+    <label>
+      Meal name
+      <input
+        id="mealName"
+        required
+        placeholder="Breakfast, lunch, snack..."
+      >
+    </label>
+
+    <label>
+      Calories
+      <input
+        id="mealCalories"
+        required
+        type="number"
+        min="0"
+        step="1"
+        placeholder="e.g. 520"
+      >
+    </label>
+
+    <div class="dialog-actions">
+
+      <button
+        value="cancel"
+        class="ghost"
+      >
+        Cancel
+      </button>
+
+      <button
+        id="saveMealBtn"
+        value="default"
+        class="primary"
+      >
+        Save meal
+      </button>
+
+    </div>
+
+  </form>
+
+</dialog>
+
+
+<dialog id="settingsDialog">
+
+  <form method="dialog" id="settingsForm">
+
+    <div class="dialog-head">
+
+      <h2>Challenge settings</h2>
+
+      <button
+        value="cancel"
+        class="icon-btn"
+      >
+        ×
+      </button>
+
+    </div>
+
+    <label>
+      Daily calorie target
+      <input
+        id="settingsTarget"
+        type="number"
+        min="1"
+      >
+    </label>
+
+    <label>
+      Challenge start date
+      <input
+        id="settingsDate"
+        type="date"
+      >
+    </label>
+
+    <div class="dialog-actions">
+
+      <button
+        value="cancel"
+        class="ghost"
+      >
+        Cancel
+      </button>
+
+      <button
+        id="saveSettings"
+        value="default"
+        class="primary"
+      >
+        Save changes
+      </button>
+
+    </div>
+
+  </form>
+
+</dialog>
+
+
 <script src="app.js"></script>
-</body></html>
+
+</body>
+</html>
