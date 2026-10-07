@@ -703,3 +703,43 @@ dialog form{
     border-radius:6px;
   }
 }
+
+
+/* Final mobile calendar selection and import button fix */
+.calendar .day{
+  position:relative;
+  z-index:1;
+}
+
+.calendar .day.selected{
+  outline:none !important;
+  border:2px solid var(--text) !important;
+  box-shadow:0 0 0 2px var(--panel);
+  z-index:5;
+}
+
+.file-label{
+  display:inline-flex !important;
+  flex-direction:row !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:0 !important;
+  width:auto !important;
+  height:auto !important;
+  min-height:43px;
+  padding:11px 16px !important;
+  margin:0 !important;
+  border:1px solid var(--line) !important;
+  border-radius:10px !important;
+  background:transparent !important;
+  color:var(--text) !important;
+  font-family:inherit !important;
+  font-size:inherit !important;
+  font-weight:400 !important;
+  line-height:1.5 !important;
+  box-sizing:border-box !important;
+}
+
+.file-label:hover{
+  opacity:.85;
+}
