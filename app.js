@@ -321,23 +321,20 @@ function status(date) {
 }
 
 function streak() {
+   const start = parseDate(state.startDate);
+  const today = parseDate(todayISO());
+
+  if (today < start) return 0;
+
+  const todayIndex =
+    Math.min(100, Math.floor((today - start) / 86400000) + 1);
+
   let s = 0;
 
-  const start = parseDate(state.startDate);
-  const now = parseDate(todayISO());
-
-  if (now < start) return 0;
-
-  const idx = Math.min(
-    100,
-    Math.floor((now - start) / 86400000) + 1
-  );
-
-  for (let i = idx; i >= 1; i--) {
+  // Count completed days before today.
+  for (let i = todayIndex - 1; i >= 1; i--) {
     const d = iso(
-      new Date(
-        start.getTime() + (i - 1) * 86400000
-      )
+      new Date(start.getTime() + (i - 1) * 86400000)
     );
 
     const st = status(d);
@@ -347,6 +344,13 @@ function streak() {
     } else {
       break;
     }
+  }
+
+  // Only add today if today has actually been completed.
+  const todayStatus = status(todayISO());
+
+  if (todayStatus === "done" || todayStatus === "warn") {
+    s++;
   }
 
   return s;
