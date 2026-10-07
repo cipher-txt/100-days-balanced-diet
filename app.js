@@ -1106,7 +1106,9 @@ function editMeal(id) {
 $("mealForm").addEventListener(
   "submit",
   async e => {
-
+if (e.submitter && e.submitter.value === "cancel") {
+  return;
+}
     /*
       If Cancel was clicked,
       allow the dialog form to close.
@@ -1361,7 +1363,14 @@ $("settingsBtn").onclick = () => {
 $("settingsForm").addEventListener(
   "submit",
   async e => {
+if (e.submitter && e.submitter.value === "cancel") {
+    return;
+  }
 
+  e.preventDefault();
+
+  // the rest of your existing code...
+});
     /*
       Allow Cancel to close normally.
     */
