@@ -237,6 +237,13 @@ function removeAuthUI() {
   if (panel) {
     panel.remove();
   }
+
+  const resetPanel =
+    $("resetPasswordPanel");
+
+  if (resetPanel) {
+    resetPanel.remove();
+  }
 }
 
 
@@ -371,7 +378,8 @@ async function forgotPassword() {
   );
 
   const redirectTo =
-    SITE_URL;
+    window.location.origin +
+    window.location.pathname;
 
   const {
     error
