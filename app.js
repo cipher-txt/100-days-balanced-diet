@@ -1,6 +1,9 @@
 const SUPABASE_URL =
   "https://gaiikrirdociwrcjgiuu.supabase.co";
 
+const SITE_URL =
+  "https://cipher-txt.github.io/100-days-balanced-diet/";
+
 const SUPABASE_KEY =
   "sb_publishable_Pa6_otztoPlyt052H325zg_91NJtYkX";
 
@@ -368,8 +371,7 @@ async function forgotPassword() {
   );
 
   const redirectTo =
-    window.location.origin +
-    window.location.pathname;
+    SITE_URL;
 
   const {
     error
