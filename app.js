@@ -451,6 +451,21 @@ async function updatePassword() {
   );
 
   const {
+    data: sessionData
+  } =
+    await db.auth.getSession();
+
+  if (!sessionData.session) {
+
+    resetPasswordMessage(
+      "This reset link is no longer valid. Please request a new password reset email."
+    );
+
+    return;
+  }
+
+  const {
+    data,
     error
   } =
     await db.auth.updateUser({
@@ -458,6 +473,11 @@ async function updatePassword() {
     });
 
   if (error) {
+
+    console.error(
+      "Password update error:",
+      error
+    );
 
     resetPasswordMessage(
       "Could not update password: " +
@@ -467,24 +487,53 @@ async function updatePassword() {
     return;
   }
 
+  if (!data || !data.user) {
+
+    resetPasswordMessage(
+      "The password could not be changed. Please request a new reset email."
+    );
+
+    return;
+  }
+
   resetPasswordMessage(
-    "Password updated successfully. Logging you in..."
+    "Password changed successfully. Please log in with your new password."
   );
 
-  setTimeout(
-    async () => {
+  await db.auth.signOut();
 
-      window.history.replaceState(
-        {},
-        document.title,
-        window.location.pathname
-      );
+  setTimeout(() => {
 
-      await afterLogin();
+    window.history.replaceState(
+      {},
+      document.title,
+      window.location.pathname
+    );
 
-    },
-    1000
-  );
+    createAuthUI();
+
+    const setup =
+      $("setup");
+
+    const app =
+      $("app");
+
+    if (setup) {
+      setup.classList.add("hidden");
+    }
+
+    if (app) {
+      app.classList.add("hidden");
+    }
+
+    const email =
+      data.user.email;
+
+    if (email && $("authEmail")) {
+      $("authEmail").value = email;
+    }
+
+  }, 500);
 }
 
 
