@@ -1,5 +1,8 @@
-const SUPABASE_URL = "https://gaiikrirdociwrcjgiuu.supabase.co";
-const SUPABASE_KEY = "sb_publishable_Pa6_otztoPlyt052H325zg_91NJtYkX";
+const SUPABASE_URL =
+  "https://gaiikrirdociwrcjgiuu.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_Pa6_otztoPlyt052H325zg_91NJtYkX";
 
 let db = null;
 let state = null;
@@ -8,33 +11,46 @@ let editingId = null;
 let currentUser = null;
 let challengeId = null;
 
-const $ = id => document.getElementById(id);
+const $ = id =>
+  document.getElementById(id);
 
 const iso = d => {
+
   const x = new Date(d);
 
   return new Date(
-    x.getTime() - x.getTimezoneOffset() * 60000
+    x.getTime() -
+    x.getTimezoneOffset() * 60000
   )
     .toISOString()
     .slice(0, 10);
 };
 
 const parseDate = s => {
-  const [y, m, d] = s.split("-").map(Number);
 
-  return new Date(y, m - 1, d);
+  const [y, m, d] =
+    s.split("-").map(Number);
+
+  return new Date(
+    y,
+    m - 1,
+    d
+  );
 };
 
-const todayISO = () => iso(new Date());
+const todayISO = () =>
+  iso(new Date());
 
 const fmt = d =>
-  parseDate(d).toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric"
-  });
+  parseDate(d).toLocaleDateString(
+    undefined,
+    {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric"
+    }
+  );
 
 
 /* =========================
@@ -42,57 +58,68 @@ const fmt = d =>
 ========================= */
 
 function loadSupabase() {
-  return new Promise((resolve, reject) => {
 
-    if (window.supabase && window.supabase.createClient) {
-
-      db = window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_KEY
-      );
-
-      resolve();
-      return;
-    }
-
-    const script = document.createElement("script");
-
-    script.src =
-      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
-
-    script.onload = () => {
+  return new Promise(
+    (resolve, reject) => {
 
       if (
-        !window.supabase ||
-        !window.supabase.createClient
+        window.supabase &&
+        window.supabase.createClient
       ) {
-        reject(
-          new Error(
-            "Supabase library loaded incorrectly."
-          )
-        );
 
+        db =
+          window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_KEY
+          );
+
+        resolve();
         return;
       }
 
-      db = window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_KEY
-      );
+      const script =
+        document.createElement("script");
 
-      resolve();
-    };
+      script.src =
+        "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 
-    script.onerror = () => {
-      reject(
-        new Error(
-          "Could not load Supabase."
-        )
-      );
-    };
+      script.onload = () => {
 
-    document.head.appendChild(script);
-  });
+        if (
+          !window.supabase ||
+          !window.supabase.createClient
+        ) {
+
+          reject(
+            new Error(
+              "Supabase library loaded incorrectly."
+            )
+          );
+
+          return;
+        }
+
+        db =
+          window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_KEY
+          );
+
+        resolve();
+      };
+
+      script.onerror = () => {
+
+        reject(
+          new Error(
+            "Could not load Supabase."
+          )
+        );
+      };
+
+      document.head.appendChild(script);
+    }
+  );
 }
 
 
@@ -102,25 +129,39 @@ function loadSupabase() {
 
 function createAuthUI() {
 
-  if ($("authPanel")) return;
+  if ($("authPanel")) {
+    return;
+  }
 
-  const panel = document.createElement("section");
+  const panel =
+    document.createElement("section");
 
-  panel.id = "authPanel";
-  panel.className = "panel auth-panel";
+  panel.id =
+    "authPanel";
+
+  panel.className =
+    "panel auth-panel";
 
   panel.innerHTML = `
     <div class="auth-box">
 
-      <p class="eyebrow">YOUR ACCOUNT</p>
-
-      <h1>100 Days — Balanced Diet</h1>
-
-      <p class="muted">
-        Sign in to keep your challenge and meals saved across devices.
+      <p class="eyebrow">
+        YOUR ACCOUNT
       </p>
 
-      <div id="authMessage" class="muted"></div>
+      <h1>
+        100 Days — Balanced Diet
+      </h1>
+
+      <p class="muted">
+        Sign in to keep your challenge and meals
+        saved across devices.
+      </p>
+
+      <div
+        id="authMessage"
+        class="muted"
+      ></div>
 
       <label>
         Email
@@ -140,11 +181,21 @@ function createAuthUI() {
         >
       </label>
 
+      <button
+        id="forgotPasswordBtn"
+        type="button"
+        class="ghost"
+        style="margin-top:-4px;"
+      >
+        Forgot password?
+      </button>
+
       <div class="dialog-actions">
 
         <button
           id="loginBtn"
           class="primary"
+          type="button"
         >
           Log in
         </button>
@@ -152,6 +203,7 @@ function createAuthUI() {
         <button
           id="signupBtn"
           class="secondary"
+          type="button"
         >
           Create account
         </button>
@@ -163,26 +215,266 @@ function createAuthUI() {
 
   $("setup").before(panel);
 
-  $("loginBtn").onclick = login;
-  $("signupBtn").onclick = signup;
+  $("loginBtn").onclick =
+    login;
+
+  $("signupBtn").onclick =
+    signup;
+
+  $("forgotPasswordBtn").onclick =
+    forgotPassword;
 }
+
 
 function removeAuthUI() {
 
-  const panel = $("authPanel");
+  const panel =
+    $("authPanel");
 
   if (panel) {
     panel.remove();
   }
 }
 
+
 function authMessage(message) {
 
-  const el = $("authMessage");
+  const el =
+    $("authMessage");
 
   if (el) {
-    el.textContent = message;
+    el.textContent =
+      message;
   }
+}
+
+
+/* =========================
+   PASSWORD RESET UI
+========================= */
+
+function createResetPasswordUI() {
+
+  removeAuthUI();
+
+  const oldPanel =
+    $("resetPasswordPanel");
+
+  if (oldPanel) {
+    oldPanel.remove();
+  }
+
+  const panel =
+    document.createElement("section");
+
+  panel.id =
+    "resetPasswordPanel";
+
+  panel.className =
+    "panel auth-panel";
+
+  panel.innerHTML = `
+    <div class="auth-box">
+
+      <p class="eyebrow">
+        RESET PASSWORD
+      </p>
+
+      <h1>
+        Create a new password
+      </h1>
+
+      <p class="muted">
+        Enter a new password for your account.
+      </p>
+
+      <div
+        id="resetPasswordMessage"
+        class="muted"
+      ></div>
+
+      <label>
+        New password
+        <input
+          id="newPassword"
+          type="password"
+          minlength="6"
+          placeholder="New password"
+        >
+      </label>
+
+      <label>
+        Confirm password
+        <input
+          id="confirmPassword"
+          type="password"
+          minlength="6"
+          placeholder="Confirm password"
+        >
+      </label>
+
+      <button
+        id="updatePasswordBtn"
+        class="primary"
+        type="button"
+      >
+        Update password
+      </button>
+
+    </div>
+  `;
+
+  $("setup").before(panel);
+
+  $("updatePasswordBtn").onclick =
+    updatePassword;
+}
+
+
+function resetPasswordMessage(message) {
+
+  const el =
+    $("resetPasswordMessage");
+
+  if (el) {
+    el.textContent =
+      message;
+  }
+}
+
+
+/* =========================
+   FORGOT PASSWORD
+========================= */
+
+async function forgotPassword() {
+
+  const email =
+    $("authEmail").value.trim();
+
+  if (!email) {
+
+    authMessage(
+      "Enter your email address first."
+    );
+
+    $("authEmail").focus();
+
+    return;
+  }
+
+  authMessage(
+    "Sending password reset email..."
+  );
+
+  const redirectTo =
+    window.location.origin +
+    window.location.pathname;
+
+  const {
+    error
+  } =
+    await db.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo
+      }
+    );
+
+  if (error) {
+
+    authMessage(
+      "Could not send reset email: " +
+      error.message
+    );
+
+    return;
+  }
+
+  authMessage(
+    "Password reset email sent. Check your inbox."
+  );
+}
+
+
+/* =========================
+   UPDATE PASSWORD
+========================= */
+
+async function updatePassword() {
+
+  const password =
+    $("newPassword").value;
+
+  const confirm =
+    $("confirmPassword").value;
+
+  if (!password || !confirm) {
+
+    resetPasswordMessage(
+      "Enter and confirm your new password."
+    );
+
+    return;
+  }
+
+  if (password.length < 6) {
+
+    resetPasswordMessage(
+      "Password must be at least 6 characters."
+    );
+
+    return;
+  }
+
+  if (password !== confirm) {
+
+    resetPasswordMessage(
+      "Passwords do not match."
+    );
+
+    return;
+  }
+
+  resetPasswordMessage(
+    "Updating password..."
+  );
+
+  const {
+    error
+  } =
+    await db.auth.updateUser({
+      password
+    });
+
+  if (error) {
+
+    resetPasswordMessage(
+      "Could not update password: " +
+      error.message
+    );
+
+    return;
+  }
+
+  resetPasswordMessage(
+    "Password updated successfully. Logging you in..."
+  );
+
+  setTimeout(
+    async () => {
+
+      window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname
+      );
+
+      await afterLogin();
+
+    },
+    1000
+  );
 }
 
 
@@ -207,9 +499,13 @@ async function login() {
     return;
   }
 
-  authMessage("Logging in...");
+  authMessage(
+    "Logging in..."
+  );
 
-  const { error } =
+  const {
+    error
+  } =
     await db.auth.signInWithPassword({
       email,
       password
@@ -217,7 +513,9 @@ async function login() {
 
   if (error) {
 
-    authMessage(error.message);
+    authMessage(
+      error.message
+    );
 
     return;
   }
@@ -256,9 +554,14 @@ async function signup() {
     return;
   }
 
-  authMessage("Creating account...");
+  authMessage(
+    "Creating account..."
+  );
 
-  const { data, error } =
+  const {
+    data,
+    error
+  } =
     await db.auth.signUp({
       email,
       password
@@ -266,7 +569,9 @@ async function signup() {
 
   if (error) {
 
-    authMessage(error.message);
+    authMessage(
+      error.message
+    );
 
     return;
   }
@@ -290,14 +595,23 @@ async function signup() {
 
 async function loadChallenge() {
 
-  const { data, error } =
+  const {
+    data,
+    error
+  } =
     await db
       .from("challenges")
       .select("*")
-      .eq("user_id", currentUser.id)
-      .order("created_at", {
-        ascending: false
-      })
+      .eq(
+        "user_id",
+        currentUser.id
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      )
       .limit(1)
       .maybeSingle();
 
@@ -317,11 +631,16 @@ async function loadChallenge() {
     return null;
   }
 
-  challengeId = data.id;
+  challengeId =
+    data.id;
 
   state = {
-    target: Number(data.target),
-    startDate: data.start_date,
+    target:
+      Number(data.target),
+
+    startDate:
+      data.start_date,
+
     days: {}
   };
 
@@ -331,13 +650,20 @@ async function loadChallenge() {
   const {
     data: meals,
     error: mealError
-  } = await db
-    .from("meals")
-    .select("*")
-    .eq("challenge_id", challengeId)
-    .order("created_at", {
-      ascending: true
-    });
+  } =
+    await db
+      .from("meals")
+      .select("*")
+      .eq(
+        "challenge_id",
+        challengeId
+      )
+      .order(
+        "created_at",
+        {
+          ascending: true
+        }
+      );
 
   if (mealError) {
 
@@ -351,46 +677,77 @@ async function loadChallenge() {
     return null;
   }
 
-  (meals || []).forEach(meal => {
+  (meals || []).forEach(
+    meal => {
 
-    if (!state.days[meal.meal_date]) {
+      if (
+        !state.days[
+          meal.meal_date
+        ]
+      ) {
 
-      state.days[meal.meal_date] = {
-        meals: [],
-        manualMiss: false
-      };
+        state.days[
+          meal.meal_date
+        ] = {
+          meals: [],
+          manualMiss: false
+        };
+      }
+
+      state.days[
+        meal.meal_date
+      ].meals.push({
+        id:
+          meal.id,
+
+        name:
+          meal.name,
+
+        cal:
+          Number(
+            meal.calories
+          )
+      });
     }
-
-    state.days[meal.meal_date].meals.push({
-      id: meal.id,
-      name: meal.name,
-      cal: Number(meal.calories)
-    });
-  });
+  );
 
 
   /* LOAD MISSED DAYS */
 
   const {
     data: misses
-  } = await db
-    .from("day_status")
-    .select("*")
-    .eq("challenge_id", challengeId);
+  } =
+    await db
+      .from("day_status")
+      .select("*")
+      .eq(
+        "challenge_id",
+        challengeId
+      );
 
-  (misses || []).forEach(item => {
+  (misses || []).forEach(
+    item => {
 
-    if (!state.days[item.day_date]) {
+      if (
+        !state.days[
+          item.day_date
+        ]
+      ) {
 
-      state.days[item.day_date] = {
-        meals: [],
-        manualMiss: false
-      };
+        state.days[
+          item.day_date
+        ] = {
+          meals: [],
+          manualMiss: false
+        };
+      }
+
+      state.days[
+        item.day_date
+      ].manualMiss =
+        item.manual_miss === true;
     }
-
-    state.days[item.day_date].manualMiss =
-      item.manual_miss === true;
-  });
+  );
 
   return state;
 }
@@ -400,20 +757,28 @@ async function loadChallenge() {
    CREATE CHALLENGE
 ========================= */
 
-async function createChallenge(target, date) {
+async function createChallenge(
+  target,
+  date
+) {
 
   const {
     data,
     error
-  } = await db
-    .from("challenges")
-    .insert({
-      user_id: currentUser.id,
-      target,
-      start_date: date
-    })
-    .select()
-    .single();
+  } =
+    await db
+      .from("challenges")
+      .insert({
+        user_id:
+          currentUser.id,
+
+        target,
+
+        start_date:
+          date
+      })
+      .select()
+      .single();
 
   if (error) {
 
@@ -425,11 +790,15 @@ async function createChallenge(target, date) {
     return false;
   }
 
-  challengeId = data.id;
+  challengeId =
+    data.id;
 
   state = {
     target,
-    startDate: date,
+
+    startDate:
+      date,
+
     days: {}
   };
 
@@ -444,15 +813,19 @@ async function createChallenge(target, date) {
 function dayIndex(date) {
 
   const start =
-    parseDate(state.startDate);
+    parseDate(
+      state.startDate
+    );
 
   const cur =
     parseDate(date);
 
   return Math.floor(
-    (cur - start) / 86400000
+    (cur - start) /
+    86400000
   ) + 1;
 }
+
 
 function validDate(date) {
 
@@ -461,6 +834,7 @@ function validDate(date) {
     dayIndex(date) <= 100
   );
 }
+
 
 function isFutureDate(date) {
 
@@ -485,13 +859,16 @@ function getDay(date) {
   return state.days[date];
 }
 
+
 function calories(date) {
 
-  return getDay(date).meals.reduce(
-    (a, m) =>
-      a + Number(m.cal || 0),
-    0
-  );
+  return getDay(date)
+    .meals
+    .reduce(
+      (a, m) =>
+        a + Number(m.cal || 0),
+      0
+    );
 }
 
 
@@ -518,7 +895,9 @@ function status(date) {
     return "empty";
   }
 
-  if (c <= Number(state.target)) {
+  if (
+    c <= Number(state.target)
+  ) {
     return "done";
   }
 
@@ -532,18 +911,21 @@ function status(date) {
 
 /* =========================
    STREAK
-   Based on selected
-   challenge day
 ========================= */
 
 function streak() {
 
-  if (!state || !selectedDate) {
+  if (
+    !state ||
+    !selectedDate
+  ) {
     return 0;
   }
 
   const selectedIndex =
-    dayIndex(selectedDate);
+    dayIndex(
+      selectedDate
+    );
 
   if (
     selectedIndex < 1 ||
@@ -561,13 +943,16 @@ function streak() {
   ) {
 
     const start =
-      parseDate(state.startDate);
+      parseDate(
+        state.startDate
+      );
 
     const d =
       iso(
         new Date(
           start.getTime() +
-          (i - 1) * 86400000
+          (i - 1) *
+          86400000
         )
       );
 
@@ -578,8 +963,11 @@ function streak() {
       st === "done" ||
       st === "warn"
     ) {
+
       s++;
+
     } else {
+
       break;
     }
   }
@@ -594,18 +982,27 @@ function streak() {
 
 function render() {
 
-  if (!state || !selectedDate) {
+  if (
+    !state ||
+    !selectedDate
+  ) {
     return;
   }
 
   const idx =
-    dayIndex(selectedDate);
+    dayIndex(
+      selectedDate
+    );
 
   const c =
-    calories(selectedDate);
+    calories(
+      selectedDate
+    );
 
   const st =
-    status(selectedDate);
+    status(
+      selectedDate
+    );
 
   const max =
     Number(state.target) + 100;
@@ -616,14 +1013,19 @@ function render() {
   $("dayNumber").textContent =
     Math.min(
       100,
-      Math.max(1, idx)
+      Math.max(
+        1,
+        idx
+      )
     );
 
 
   /* DATE */
 
   $("dateLabel").textContent =
-    fmt(selectedDate);
+    fmt(
+      selectedDate
+    );
 
 
   /* STATS */
@@ -720,29 +1122,37 @@ function render() {
   $("dayMessage").textContent =
     st === "done"
       ? "Within your daily target."
+
       : st === "warn"
       ? "Within the extra 100 kcal allowance."
+
       : st === "fail"
       ? "This day is over the allowance or was marked missed. The streak resets."
-      : isFutureDate(selectedDate)
+
+      : isFutureDate(
+          selectedDate
+        )
       ? "This is a future day. You cannot log meals yet."
+
       : "Log your meals to see today's result.";
 
 
   /* MISSED BUTTON */
 
   $("completeBtn").textContent =
-    getDay(selectedDate).manualMiss
+    getDay(
+      selectedDate
+    ).manualMiss
       ? "Undo missed day"
       : "Mark day as missed";
 
 
-  /*
-    Disable actions on future days
-  */
+  /* FUTURE DAY */
 
   const future =
-    isFutureDate(selectedDate);
+    isFutureDate(
+      selectedDate
+    );
 
   $("addMealBtn").disabled =
     future;
@@ -759,53 +1169,63 @@ function render() {
   list.innerHTML = "";
 
   const meals =
-    getDay(selectedDate).meals;
+    getDay(
+      selectedDate
+    ).meals;
 
-  $("emptyMeals").classList.toggle(
-    "hidden",
-    meals.length > 0
+  $("emptyMeals")
+    .classList
+    .toggle(
+      "hidden",
+      meals.length > 0
+    );
+
+  meals.forEach(
+    m => {
+
+      const el =
+        document.createElement(
+          "div"
+        );
+
+      el.className =
+        "meal";
+
+      el.innerHTML = `
+        <div>
+
+          <div class="meal-name">
+            ${esc(m.name)}
+          </div>
+
+          <div class="meal-calories">
+            ${Number(m.cal).toLocaleString()} kcal
+          </div>
+
+        </div>
+
+        <div class="meal-actions">
+
+          <button
+            onclick="editMeal('${m.id}')"
+            ${future ? "disabled" : ""}
+          >
+            Edit
+          </button>
+
+          <button
+            onclick="deleteMeal('${m.id}')"
+            ${future ? "disabled" : ""}
+          >
+            Delete
+          </button>
+
+        </div>
+      `;
+
+      list.appendChild(el);
+    }
   );
-
-  meals.forEach(m => {
-
-    const el =
-      document.createElement("div");
-
-    el.className =
-      "meal";
-
-    el.innerHTML = `
-      <div>
-        <div class="meal-name">
-          ${esc(m.name)}
-        </div>
-
-        <div class="meal-calories">
-          ${Number(m.cal).toLocaleString()} kcal
-        </div>
-      </div>
-
-      <div class="meal-actions">
-
-        <button
-          onclick="editMeal('${m.id}')"
-          ${future ? "disabled" : ""}
-        >
-          Edit
-        </button>
-
-        <button
-          onclick="deleteMeal('${m.id}')"
-          ${future ? "disabled" : ""}
-        >
-          Delete
-        </button>
-
-      </div>
-    `;
-
-    list.appendChild(el);
-  });
 
   renderCalendar();
 }
@@ -823,7 +1243,9 @@ function renderCalendar() {
   cal.innerHTML = "";
 
   const start =
-    parseDate(state.startDate);
+    parseDate(
+      state.startDate
+    );
 
   const today =
     todayISO();
@@ -838,12 +1260,15 @@ function renderCalendar() {
       iso(
         new Date(
           start.getTime() +
-          (i - 1) * 86400000
+          (i - 1) *
+          86400000
         )
       );
 
     const el =
-      document.createElement("button");
+      document.createElement(
+        "button"
+      );
 
     el.className =
       "day " +
@@ -854,18 +1279,22 @@ function renderCalendar() {
           : ""
       );
 
-    el.textContent = i;
+    el.textContent =
+      i;
 
     el.title =
       `Day ${i} • ${fmt(d)}`;
 
     if (d > today) {
-      el.classList.add("future");
+      el.classList.add(
+        "future"
+      );
     }
 
     el.onclick = () => {
 
-      selectedDate = d;
+      selectedDate =
+        d;
 
       render();
     };
@@ -899,9 +1328,16 @@ function esc(s) {
    SAVE MEAL
 ========================= */
 
-async function saveMeal(name, cal) {
+async function saveMeal(
+  name,
+  cal
+) {
 
-  if (isFutureDate(selectedDate)) {
+  if (
+    isFutureDate(
+      selectedDate
+    )
+  ) {
 
     alert(
       "You cannot add meals to a future day."
@@ -910,14 +1346,22 @@ async function saveMeal(name, cal) {
     return false;
   }
 
-  const { error } =
+  const {
+    error
+  } =
     await db
       .from("meals")
       .insert({
-        challenge_id: challengeId,
-        meal_date: selectedDate,
+        challenge_id:
+          challengeId,
+
+        meal_date:
+          selectedDate,
+
         name,
-        calories: cal
+
+        calories:
+          cal
       });
 
   if (error) {
@@ -944,7 +1388,11 @@ async function updateMeal(
   cal
 ) {
 
-  if (isFutureDate(selectedDate)) {
+  if (
+    isFutureDate(
+      selectedDate
+    )
+  ) {
 
     alert(
       "You cannot edit meals on a future day."
@@ -953,15 +1401,24 @@ async function updateMeal(
     return false;
   }
 
-  const { error } =
+  const {
+    error
+  } =
     await db
       .from("meals")
       .update({
         name,
-        calories: cal
+        calories:
+          cal
       })
-      .eq("id", id)
-      .eq("challenge_id", challengeId);
+      .eq(
+        "id",
+        id
+      )
+      .eq(
+        "challenge_id",
+        challengeId
+      );
 
   if (error) {
 
@@ -983,7 +1440,11 @@ async function updateMeal(
 
 async function deleteMeal(id) {
 
-  if (isFutureDate(selectedDate)) {
+  if (
+    isFutureDate(
+      selectedDate
+    )
+  ) {
 
     alert(
       "You cannot delete meals from a future day."
@@ -1000,12 +1461,20 @@ async function deleteMeal(id) {
     return;
   }
 
-  const { error } =
+  const {
+    error
+  } =
     await db
       .from("meals")
       .delete()
-      .eq("id", id)
-      .eq("challenge_id", challengeId);
+      .eq(
+        "id",
+        id
+      )
+      .eq(
+        "challenge_id",
+        challengeId
+      );
 
   if (error) {
 
@@ -1017,13 +1486,12 @@ async function deleteMeal(id) {
     return;
   }
 
-  /*
-    Remove it locally only after
-    successful database deletion.
-  */
-
-  getDay(selectedDate).meals =
-    getDay(selectedDate).meals.filter(
+  getDay(
+    selectedDate
+  ).meals =
+    getDay(
+      selectedDate
+    ).meals.filter(
       m => m.id !== id
     );
 
@@ -1032,12 +1500,16 @@ async function deleteMeal(id) {
 
 
 /* =========================
-   ADD MEAL DIALOG
+   ADD MEAL
 ========================= */
 
 function addMeal() {
 
-  if (isFutureDate(selectedDate)) {
+  if (
+    isFutureDate(
+      selectedDate
+    )
+  ) {
 
     alert(
       "You cannot add meals to a future day."
@@ -1046,25 +1518,33 @@ function addMeal() {
     return;
   }
 
-  editingId = null;
+  editingId =
+    null;
 
   $("dialogTitle").textContent =
     "Add meal";
 
-  $("mealName").value = "";
-  $("mealCalories").value = "";
+  $("mealName").value =
+    "";
+
+  $("mealCalories").value =
+    "";
 
   $("mealDialog").showModal();
 }
 
 
 /* =========================
-   EDIT MEAL DIALOG
+   EDIT MEAL
 ========================= */
 
 function editMeal(id) {
 
-  if (isFutureDate(selectedDate)) {
+  if (
+    isFutureDate(
+      selectedDate
+    )
+  ) {
 
     alert(
       "You cannot edit meals on a future day."
@@ -1074,7 +1554,9 @@ function editMeal(id) {
   }
 
   const meal =
-    getDay(selectedDate)
+    getDay(
+      selectedDate
+    )
       .meals
       .find(
         m => m.id === id
@@ -1084,7 +1566,8 @@ function editMeal(id) {
     return;
   }
 
-  editingId = id;
+  editingId =
+    id;
 
   $("dialogTitle").textContent =
     "Edit meal";
@@ -1106,29 +1589,18 @@ function editMeal(id) {
 $("mealForm").addEventListener(
   "submit",
   async e => {
-if (e.submitter && e.submitter.value === "cancel") {
-  return;
-}
-    /*
-      If Cancel was clicked,
-      allow the dialog form to close.
-    */
-
-    if (
-      e.submitter &&
-      e.submitter.value === "cancel"
-    ) {
-      return;
-    }
 
     e.preventDefault();
 
     const name =
-      $("mealName").value.trim();
+      $("mealName")
+        .value
+        .trim();
 
     const cal =
       Number(
-        $("mealCalories").value
+        $("mealCalories")
+          .value
       );
 
     if (
@@ -1152,17 +1624,23 @@ if (e.submitter && e.submitter.value === "cancel") {
       }
 
       const meal =
-        getDay(selectedDate)
+        getDay(
+          selectedDate
+        )
           .meals
           .find(
             m =>
-              m.id === editingId
+              m.id ===
+              editingId
           );
 
       if (meal) {
 
-        meal.name = name;
-        meal.cal = cal;
+        meal.name =
+          name;
+
+        meal.cal =
+          cal;
       }
 
     } else {
@@ -1198,7 +1676,9 @@ $("addMealBtn").onclick =
 $("prevBtn").onclick = () => {
 
   const d =
-    parseDate(selectedDate);
+    parseDate(
+      selectedDate
+    );
 
   d.setDate(
     d.getDate() - 1
@@ -1209,7 +1689,8 @@ $("prevBtn").onclick = () => {
 
   if (validDate(x)) {
 
-    selectedDate = x;
+    selectedDate =
+      x;
 
     render();
   }
@@ -1219,7 +1700,9 @@ $("prevBtn").onclick = () => {
 $("nextBtn").onclick = () => {
 
   const d =
-    parseDate(selectedDate);
+    parseDate(
+      selectedDate
+    );
 
   d.setDate(
     d.getDate() + 1
@@ -1230,7 +1713,8 @@ $("nextBtn").onclick = () => {
 
   if (validDate(x)) {
 
-    selectedDate = x;
+    selectedDate =
+      x;
 
     render();
   }
@@ -1259,7 +1743,9 @@ $("completeBtn").onclick =
   async () => {
 
     if (
-      isFutureDate(selectedDate)
+      isFutureDate(
+        selectedDate
+      )
     ) {
 
       alert(
@@ -1270,25 +1756,28 @@ $("completeBtn").onclick =
     }
 
     const d =
-      getDay(selectedDate);
+      getDay(
+        selectedDate
+      );
 
     const newValue =
       !d.manualMiss;
 
     const {
       data: existing
-    } = await db
-      .from("day_status")
-      .select("id")
-      .eq(
-        "challenge_id",
-        challengeId
-      )
-      .eq(
-        "day_date",
-        selectedDate
-      )
-      .maybeSingle();
+    } =
+      await db
+        .from("day_status")
+        .select("id")
+        .eq(
+          "challenge_id",
+          challengeId
+        )
+        .eq(
+          "day_date",
+          selectedDate
+        )
+        .maybeSingle();
 
     let error;
 
@@ -1296,31 +1785,35 @@ $("completeBtn").onclick =
 
       ({
         error
-      } = await db
-        .from("day_status")
-        .update({
-          manual_miss:
-            newValue
-        })
-        .eq(
-          "id",
-          existing.id
-        ));
+      } =
+        await db
+          .from("day_status")
+          .update({
+            manual_miss:
+              newValue
+          })
+          .eq(
+            "id",
+            existing.id
+          ));
 
     } else {
 
       ({
         error
-      } = await db
-        .from("day_status")
-        .insert({
-          challenge_id:
-            challengeId,
-          day_date:
-            selectedDate,
-          manual_miss:
-            newValue
-        }));
+      } =
+        await db
+          .from("day_status")
+          .insert({
+            challenge_id:
+              challengeId,
+
+            day_date:
+              selectedDate,
+
+            manual_miss:
+              newValue
+          }));
     }
 
     if (error) {
@@ -1364,10 +1857,6 @@ $("settingsForm").addEventListener(
   "submit",
   async e => {
 
-    if (e.submitter && e.submitter.value === "cancel") {
-      return;
-    }
-
     e.preventDefault();
 
     const target =
@@ -1385,12 +1874,15 @@ $("settingsForm").addEventListener(
       return;
     }
 
-    const { error } =
+    const {
+      error
+    } =
       await db
         .from("challenges")
         .update({
           target,
-          start_date: date
+          start_date:
+            date
         })
         .eq(
           "id",
@@ -1418,7 +1910,9 @@ $("settingsForm").addEventListener(
       date;
 
     selectedDate =
-      validDate(todayISO())
+      validDate(
+        todayISO()
+      )
         ? todayISO()
         : date;
 
@@ -1483,16 +1977,18 @@ $("startBtn").onclick =
       return;
     }
 
-    $("setup").classList.add(
-      "hidden"
-    );
+    $("setup")
+      .classList
+      .add("hidden");
 
-    $("app").classList.remove(
-      "hidden"
-    );
+    $("app")
+      .classList
+      .remove("hidden");
 
     selectedDate =
-      validDate(todayISO())
+      validDate(
+        todayISO()
+      )
         ? todayISO()
         : date;
 
@@ -1522,10 +2018,14 @@ $("exportBtn").onclick = () => {
     );
 
   const a =
-    document.createElement("a");
+    document.createElement(
+      "a"
+    );
 
   a.href =
-    URL.createObjectURL(blob);
+    URL.createObjectURL(
+      blob
+    );
 
   a.download =
     "balanced-diet-100-days.json";
@@ -1553,7 +2053,9 @@ $("resetBtn").onclick =
       return;
     }
 
-    const { error } =
+    const {
+      error
+    } =
       await db
         .from("challenges")
         .delete()
@@ -1633,7 +2135,9 @@ function createLogoutButton() {
     };
 
   document
-    .querySelector(".topbar")
+    .querySelector(
+      ".topbar"
+    )
     .appendChild(button);
 }
 
@@ -1648,13 +2152,21 @@ async function afterLogin() {
     data: {
       user
     }
-  } = await db.auth.getUser();
+  } =
+    await db.auth.getUser();
 
   currentUser =
     user;
 
   if (!currentUser) {
     return;
+  }
+
+  const resetPanel =
+    $("resetPasswordPanel");
+
+  if (resetPanel) {
+    resetPanel.remove();
   }
 
   removeAuthUI();
@@ -1689,7 +2201,9 @@ async function afterLogin() {
     .remove("hidden");
 
   selectedDate =
-    validDate(todayISO())
+    validDate(
+      todayISO()
+    )
       ? todayISO()
       : state.startDate;
 
@@ -1714,7 +2228,27 @@ async function init() {
     } =
       await db.auth.getSession();
 
-    if (session) {
+
+    const isRecovery =
+      window.location.hash
+        .includes(
+          "type=recovery"
+        );
+
+
+    if (isRecovery) {
+
+      $("setup")
+        .classList
+        .add("hidden");
+
+      $("app")
+        .classList
+        .add("hidden");
+
+      createResetPasswordUI();
+
+    } else if (session) {
 
       await afterLogin();
 
@@ -1731,13 +2265,28 @@ async function init() {
       createAuthUI();
     }
 
+
     db.auth.onAuthStateChange(
       (event, session) => {
 
         if (
-          event === "SIGNED_IN" &&
-          session
+          event ===
+          "PASSWORD_RECOVERY"
         ) {
+
+          createResetPasswordUI();
+
+          return;
+        }
+
+        if (
+          event === "SIGNED_IN" &&
+          session &&
+          !window.location.hash.includes(
+            "type=recovery"
+          )
+        ) {
+
           afterLogin();
         }
       }
@@ -1759,13 +2308,14 @@ async function init() {
         border-radius:10px;
         font-family:system-ui;
       ">
+
         <strong>App error:</strong>
         ${esc(error.message)}
+
       </div>
       `
     );
   }
 }
-
 
 init();
