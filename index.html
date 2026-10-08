@@ -68,7 +68,6 @@
   </p>
 </section>
 
-
 <div id="app" class="hidden">
 
 <section class="hero">
@@ -92,7 +91,6 @@
   </div>
 
 </section>
-
 
 <section class="stats">
 
@@ -122,7 +120,6 @@
 
 </section>
 
-
 <section class="panel progress-panel">
 
   <div class="progress-head">
@@ -140,7 +137,6 @@
   </div>
 
 </section>
-
 
 <section class="content-grid">
 
@@ -166,7 +162,6 @@
     </div>
 
   </div>
-
 
   <aside class="panel summary">
 
@@ -199,7 +194,6 @@
   </aside>
 
 </section>
-
 
 <section class="panel calendar-panel">
 
@@ -238,7 +232,6 @@
 
 </section>
 
-
 <section class="panel tools">
 
   <button id="exportBtn" class="ghost">
@@ -260,7 +253,6 @@
 
 </section>
 
-
 <footer>
   <span>100 Days — Balanced Diet</span>
   <span>Your data is securely stored in your account.</span>
@@ -269,7 +261,6 @@
 </div>
 
 </main>
-
 
 <dialog id="mealDialog">
 
@@ -336,7 +327,6 @@
 
 </dialog>
 
-
 <dialog id="settingsDialog">
 
   <form method="dialog" id="settingsForm">
@@ -396,32 +386,59 @@
 
 </dialog>
 
-
 <script src="app.js"></script>
+
 <script>
 (function () {
-  const savedTheme = localStorage.getItem("balancedDietTheme");
+
+  const savedTheme =
+    localStorage.getItem("balancedDietTheme");
+
   if (savedTheme === "dark") {
     document.documentElement.classList.add("dark");
   }
 
-  const toggle = document.getElementById("themeToggle");
+  const toggle =
+    document.getElementById("themeToggle");
+
   if (!toggle) return;
 
   function updateIcon() {
-    const dark = document.documentElement.classList.contains("dark");
-    toggle.textContent = dark ? "☀" : "☾";
-    toggle.title = dark ? "Switch to light mode" : "Switch to dark mode";
-    toggle.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+
+    const dark =
+      document.documentElement.classList.contains("dark");
+
+    toggle.textContent =
+      dark ? "☀" : "☾";
+
+    toggle.title =
+      dark
+        ? "Switch to light mode"
+        : "Switch to dark mode";
+
+    toggle.setAttribute(
+      "aria-label",
+      dark
+        ? "Switch to light mode"
+        : "Switch to dark mode"
+    );
   }
 
   updateIcon();
 
   toggle.onclick = function () {
-    const dark = document.documentElement.classList.toggle("dark");
-    localStorage.setItem("balancedDietTheme", dark ? "dark" : "light");
+
+    const dark =
+      document.documentElement.classList.toggle("dark");
+
+    localStorage.setItem(
+      "balancedDietTheme",
+      dark ? "dark" : "light"
+    );
+
     updateIcon();
   };
+
 })();
 </script>
 
