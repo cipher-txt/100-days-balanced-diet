@@ -13,6 +13,7 @@ let selectedDate = null;
 let editingId = null;
 let currentUser = null;
 let challengeId = null;
+let passwordRecovery = false;
 
 const $ = id =>
   document.getElementById(id);
@@ -499,6 +500,8 @@ async function updatePassword() {
   resetPasswordMessage(
     "Password changed successfully. Please log in with your new password."
   );
+
+  passwordRecovery = false;
 
   await db.auth.signOut();
 
@@ -2280,6 +2283,45 @@ async function init() {
 
     await loadSupabase();
 
+    passwordRecovery =
+      window.location.hash.includes(
+        "type=recovery"
+      );
+
+    db.auth.onAuthStateChange(
+      (event, session) => {
+
+        if (
+          event ===
+          "PASSWORD_RECOVERY"
+        ) {
+
+          passwordRecovery = true;
+
+          $("setup")
+            .classList
+            .add("hidden");
+
+          $("app")
+            .classList
+            .add("hidden");
+
+          createResetPasswordUI();
+
+          return;
+        }
+
+        if (
+          event === "SIGNED_IN" &&
+          session &&
+          !passwordRecovery
+        ) {
+
+          afterLogin();
+        }
+      }
+    );
+
     const {
       data: {
         session
@@ -2287,15 +2329,7 @@ async function init() {
     } =
       await db.auth.getSession();
 
-
-    const isRecovery =
-      window.location.hash
-        .includes(
-          "type=recovery"
-        );
-
-
-    if (isRecovery) {
+    if (passwordRecovery) {
 
       $("setup")
         .classList
@@ -2323,33 +2357,6 @@ async function init() {
 
       createAuthUI();
     }
-
-
-    db.auth.onAuthStateChange(
-      (event, session) => {
-
-        if (
-          event ===
-          "PASSWORD_RECOVERY"
-        ) {
-
-          createResetPasswordUI();
-
-          return;
-        }
-
-        if (
-          event === "SIGNED_IN" &&
-          session &&
-          !window.location.hash.includes(
-            "type=recovery"
-          )
-        ) {
-
-          afterLogin();
-        }
-      }
-    );
 
   } catch (error) {
 
